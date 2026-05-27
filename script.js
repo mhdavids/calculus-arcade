@@ -333,29 +333,40 @@ function distractors(n) {
 // ============================================================
 //  PROBLEM GENERATORS
 // ============================================================
+// Sort 10-question runs so the player ramps from easy to hard (AP-style pacing).
+// Each problem may carry `difficulty: 1-10`; missing → defaults to 3.
+function byDifficulty(a, b) { return (a.difficulty || 3) - (b.difficulty || 3); }
+function makeRun(generator) {
+  return Array.from({ length: 10 }, () => generator()).sort(byDifficulty);
+}
+
 const problemGenerators = {
-  limits: () => Array.from({ length: 10 }, () => makeLimitProblem()),
-  deriv:  () => Array.from({ length: 10 }, () => makeDerivProblem()),
-  chain:  () => Array.from({ length: 10 }, () => makeChainProblem()),
-  rates:  () => shuffle(rateRushBank()).slice(0, 10),
+  limits: () => makeRun(makeLimitProblem),
+  deriv:  () => makeRun(makeDerivProblem),
+  chain:  () => makeRun(makeChainProblem),
+  rates:  () => shuffle(rateRushBank()).slice(0, 10).sort(byDifficulty),
   optim:  () => buildOptimSet(),
-  integ:  () => Array.from({ length: 10 }, () => makeIntegProblem()),
-  slope:  () => Array.from({ length: 10 }, () => makeSlopeProblem()),
-  area:   () => Array.from({ length: 10 }, () => makeAreaProblem()),
-  ftc:    () => Array.from({ length: 10 }, () => makeFTCProblem()),
+  integ:  () => makeRun(makeIntegProblem),
+  slope:  () => makeRun(makeSlopeProblem),
+  area:   () => makeRun(makeAreaProblem),
+  ftc:    () => makeRun(makeFTCProblem),
 };
 
 // ============================================================
 //  UNIT 1 · LIMITS
 // ============================================================
 function makeLimitProblem() {
-  const kind = pick(['poly', 'factor', 'piecewise', 'trig', 'atInf', 'continuity', 'ivt', 'squeeze']);
+  const kind = pick([
+    'poly', 'factor', 'piecewise', 'trig', 'atInf', 'continuity', 'ivt', 'squeeze',
+    'conjugate', 'lhopitalExp', 'trigComplex', 'radInf', 'piecewiseParam', 'lhopitalIter',
+  ]);
 
   if (kind === 'poly') {
     const a = pick([1, 2, -1, 3, -2]), b = pick([1, -1, 2, -2, 3]), c = pick([0, 1, 2, -1]);
     const x = pick([0, 1, 2, -1, 3]);
     const ans = a * x * x + b * x + c;
     return {
+      difficulty: 2,
       expr: `\\lim_{x \\to ${x}}\\bigl(${a}x^2 ${b >= 0 ? '+' : '-'} ${Math.abs(b)}x ${c >= 0 ? '+' : '-'} ${Math.abs(c)}\\bigr)`,
       answer: fmt(ans),
       options: distractors(ans),
@@ -367,6 +378,7 @@ function makeLimitProblem() {
     const a = pick([1, 2, 3, 4, 5]);
     const ans = 2 * a;
     return {
+      difficulty: 3,
       expr: `\\lim_{x \\to ${a}}\\,\\dfrac{x^2 - ${a * a}}{x - ${a}}`,
       answer: fmt(ans),
       options: distractors(ans),
@@ -381,6 +393,7 @@ function makeLimitProblem() {
     const opts = Array.from(new Set([fmt(L), fmt(R), '\\text{DNE}', fmt(a)]));
     while (opts.length < 4) opts.push(fmt(Math.floor(Math.random() * 10)));
     return {
+      difficulty: 3,
       expr: `\\lim_{x \\to ${a}} f(x), \\ \\ f(x)=\\begin{cases}x^2 & x<${a}\\\\ 2x+1 & x\\geq ${a}\\end{cases}`,
       answer: equal ? fmt(L) : '\\text{DNE}',
       options: shuffle(opts).slice(0, 4),
@@ -393,18 +406,21 @@ function makeLimitProblem() {
   if (kind === 'trig') {
     const choice = pick(['sinx', 'cos1', 'sin3x']);
     if (choice === 'sinx') return {
+      difficulty: 3,
       expr: `\\lim_{x \\to 0}\\,\\dfrac{\\sin x}{x}`,
       answer: '1',
       options: ['0', '1', '\\infty', '\\text{DNE}'],
       explain: `Famous limit: $\\dfrac{\\sin x}{x} \\to 1$.`,
     };
     if (choice === 'cos1') return {
+      difficulty: 4,
       expr: `\\lim_{x \\to 0}\\,\\dfrac{1 - \\cos x}{x}`,
       answer: '0',
       options: ['0', '1', '\\tfrac{1}{2}', '\\text{DNE}'],
       explain: `$\\dfrac{1-\\cos x}{x} \\to 0$.`,
     };
     return {
+      difficulty: 4,
       expr: `\\lim_{x \\to 0}\\,\\dfrac{\\sin(3x)}{x}`,
       answer: '3',
       options: ['1', '3', '0', '\\text{DNE}'],
@@ -429,13 +445,13 @@ function makeLimitProblem() {
         why: 'As $x \\to -\\infty$, $\\sqrt{x^2+1}\\sim |x|=-x$, so ratio $\\to -2$.' },
     ];
     const c = pick(kinds);
-    return { expr: c.e, answer: c.a, options: shuffle(c.opts), explain: c.why };
+    return { difficulty: 4, expr: c.e, answer: c.a, options: shuffle(c.opts), explain: c.why };
   }
 
   if (kind === 'continuity') {
-    // f(x) = (x²-4)/(x-2) for x≠2, k for x=2. For continuity, k = 4.
     const a = pick([2, 3, 4]);
     return {
+      difficulty: 4,
       expr: `\\text{For } f(x)=\\begin{cases}\\dfrac{x^2-${a * a}}{x-${a}} & x\\neq ${a}\\\\ k & x=${a}\\end{cases}\\text{, find } k \\text{ so } f \\text{ is continuous at } x=${a}.`,
       answer: fmt(2 * a),
       options: distractors(2 * a),
@@ -445,6 +461,7 @@ function makeLimitProblem() {
 
   if (kind === 'ivt') {
     return {
+      difficulty: 3,
       expr: `\\text{Does } f(x)=x^3 - x - 1 \\text{ have a root in } [1, 2] \\text{ by the IVT?}`,
       answer: '\\text{Yes}',
       options: ['\\text{Yes}', '\\text{No}', '\\text{Only at } x=1', '\\text{Only at } x=2'],
@@ -452,12 +469,90 @@ function makeLimitProblem() {
     };
   }
 
-  // squeeze
+  if (kind === 'squeeze') {
+    return {
+      difficulty: 5,
+      expr: `\\lim_{x \\to 0}\\,x^2 \\sin\\!\\left(\\dfrac{1}{x}\\right)`,
+      answer: '0',
+      options: ['0', '1', '\\infty', '\\text{DNE}'],
+      explain: `Since $-x^2 \\le x^2\\sin(1/x) \\le x^2$ and both bounds $\\to 0$, the limit is $0$ by Squeeze.`,
+    };
+  }
+
+  // ---------- HARD VARIANTS ----------
+
+  if (kind === 'conjugate') {
+    return {
+      difficulty: 6,
+      expr: `\\lim_{x \\to 0}\\,\\dfrac{\\sqrt{1+x} - 1}{x}`,
+      answer: '\\tfrac{1}{2}',
+      options: shuffle(['\\tfrac{1}{2}', '1', '0', '\\text{DNE}']),
+      explain: `Multiply by conjugate: $\\dfrac{(1+x)-1}{x(\\sqrt{1+x}+1)} = \\dfrac{1}{\\sqrt{1+x}+1} \\to \\tfrac{1}{2}$.`,
+    };
+  }
+
+  if (kind === 'lhopitalExp') {
+    return {
+      difficulty: 7,
+      expr: `\\lim_{x \\to 0}\\,\\dfrac{e^x - 1 - x}{x^2}`,
+      answer: '\\tfrac{1}{2}',
+      options: shuffle(['\\tfrac{1}{2}', '0', '1', '\\infty']),
+      explain: `Form $0/0$. L'Hôpital once: $\\dfrac{e^x - 1}{2x}$, still $0/0$. Again: $\\dfrac{e^x}{2} \\to \\tfrac{1}{2}$.`,
+    };
+  }
+
+  if (kind === 'lhopitalIter') {
+    return {
+      difficulty: 8,
+      expr: `\\lim_{x \\to 0}\\,\\dfrac{x - \\sin x}{x^3}`,
+      answer: '\\tfrac{1}{6}',
+      options: shuffle(['\\tfrac{1}{6}', '0', '\\tfrac{1}{2}', '\\tfrac{1}{3}']),
+      explain: `Three applications of L'Hôpital give $\\dfrac{\\sin x}{6} \\to 0$… wait: $\\dfrac{1-\\cos x}{3x^2} \\to \\dfrac{\\sin x}{6x} \\to \\dfrac{\\cos x}{6} \\to \\tfrac{1}{6}$.`,
+    };
+  }
+
+  if (kind === 'trigComplex') {
+    const a = pick([2, 3, 4, 5]), b = pick([2, 3, 4, 5].filter(n => n !== a));
+    return {
+      difficulty: 6,
+      expr: `\\lim_{x \\to 0}\\,\\dfrac{\\sin(${a}x)}{\\sin(${b}x)}`,
+      answer: `\\dfrac{${a}}{${b}}`,
+      options: shuffle([`\\dfrac{${a}}{${b}}`, `\\dfrac{${b}}{${a}}`, '1', '0']),
+      explain: `Rewrite as $\\dfrac{\\sin ${a}x}{${a}x} \\cdot \\dfrac{${b}x}{\\sin ${b}x} \\cdot \\dfrac{${a}}{${b}} \\to \\dfrac{${a}}{${b}}$.`,
+    };
+  }
+
+  if (kind === 'radInf') {
+    const choice = pick([
+      { e: `\\lim_{x \\to \\infty}\\,\\sqrt{x^2 + 4x} - x`,
+        a: '2',
+        opts: ['2', '0', '\\infty', '4'],
+        why: `Multiply by conjugate: $\\dfrac{4x}{\\sqrt{x^2+4x}+x} \\to \\dfrac{4x}{2x} = 2$.` },
+      { e: `\\lim_{x \\to \\infty}\\,\\sqrt{4x^2 + 5} - 2x`,
+        a: '0',
+        opts: ['0', '2', '5', '\\infty'],
+        why: `Conjugate: $\\dfrac{5}{\\sqrt{4x^2+5}+2x} \\to 0$.` },
+    ]);
+    return {
+      difficulty: 8,
+      expr: choice.e,
+      answer: choice.a,
+      options: shuffle(choice.opts),
+      explain: choice.why,
+    };
+  }
+
+  // piecewiseParam: find k so the limit exists at the split point
+  // f(x) = { x² + k, x < 1 ; 3x - 2, x ≥ 1 }. For continuity, 1 + k = 1 → k = 0.
+  const k = pick([0, 1, 2]);
+  const split = 1;
+  const correctK = (3 * split - 2) - (split * split);
   return {
-    expr: `\\lim_{x \\to 0}\\,x^2 \\sin\\!\\left(\\dfrac{1}{x}\\right)`,
-    answer: '0',
-    options: ['0', '1', '\\infty', '\\text{DNE}'],
-    explain: `Since $-x^2 \\le x^2\\sin(1/x) \\le x^2$ and both bounds $\\to 0$, the limit is $0$ by Squeeze.`,
+    difficulty: 6,
+    expr: `\\text{Find } k \\text{ so } \\lim_{x \\to ${split}} f(x) \\text{ exists, where } f(x)=\\begin{cases}x^2 + k & x<${split}\\\\ 3x - 2 & x\\geq ${split}\\end{cases}`,
+    answer: fmt(correctK),
+    options: shuffle([fmt(correctK), fmt(correctK + 1), fmt(correctK - 1), fmt(2)]),
+    explain: `Match the two pieces at $x=${split}$: $1 + k = 1 \\Rightarrow k = ${correctK}$.`,
   };
 }
 
@@ -465,11 +560,15 @@ function makeLimitProblem() {
 //  UNIT 2 · DERIVATIVES
 // ============================================================
 function makeDerivProblem() {
-  const kind = pick(['power', 'sum', 'product', 'quotient', 'trig', 'exp', 'log', 'definition']);
+  const kind = pick([
+    'power', 'sum', 'product', 'quotient', 'trig', 'exp', 'log', 'definition',
+    'productChain', 'quotientChain', 'higherOrder', 'atPoint', 'tangent', 'logChain',
+  ]);
 
   if (kind === 'power') {
     const n = pick([2, 3, 4, 5, 6]);
     return {
+      difficulty: 2,
       expr: `\\dfrac{d}{dx}\\!\\left[x^{${n}}\\right]`,
       answer: `${n}x^{${n - 1}}`,
       options: shuffle([`${n}x^{${n - 1}}`, `${n - 1}x^{${n}}`, `x^{${n - 1}}`, `${n}x^{${n}}`]),
@@ -480,6 +579,7 @@ function makeDerivProblem() {
   if (kind === 'sum') {
     const a = pick([2, 3, 4]), b = pick([1, 2, 3]);
     return {
+      difficulty: 2,
       expr: `\\dfrac{d}{dx}\\!\\left[${a}x^2 + ${b}x - 7\\right]`,
       answer: `${2 * a}x + ${b}`,
       options: shuffle([`${2 * a}x + ${b}`, `${a}x + ${b}`, `${2 * a}x - 7`, `${2 * a}x + ${b} - 7`]),
@@ -489,6 +589,7 @@ function makeDerivProblem() {
 
   if (kind === 'product') {
     return {
+      difficulty: 3,
       expr: `\\dfrac{d}{dx}\\!\\left[x \\cdot \\sin x\\right]`,
       answer: '\\sin x + x\\cos x',
       options: shuffle(['\\sin x + x\\cos x', '\\cos x', 'x\\cos x', '1 \\cdot \\sin x']),
@@ -498,6 +599,7 @@ function makeDerivProblem() {
 
   if (kind === 'quotient') {
     return {
+      difficulty: 4,
       expr: `\\dfrac{d}{dx}\\!\\left[\\dfrac{x}{x+1}\\right]`,
       answer: '\\dfrac{1}{(x+1)^2}',
       options: shuffle(['\\dfrac{1}{(x+1)^2}', '\\dfrac{-1}{(x+1)^2}', '\\dfrac{x}{(x+1)^2}', '1']),
@@ -514,6 +616,7 @@ function makeDerivProblem() {
       { e: '\\cot x',  a: '-\\csc^2 x',        d: ['\\csc^2 x', '-\\sec^2 x', '-\\tan x'] },
     ]);
     return {
+      difficulty: 3,
       expr: `\\dfrac{d}{dx}\\!\\left[${t.e}\\right]`,
       answer: t.a,
       options: shuffle([t.a, ...t.d]),
@@ -524,6 +627,7 @@ function makeDerivProblem() {
   if (kind === 'exp') {
     const k = pick([2, 3, 5]);
     return {
+      difficulty: 3,
       expr: `\\dfrac{d}{dx}\\!\\left[e^{${k}x}\\right]`,
       answer: `${k}e^{${k}x}`,
       options: shuffle([`${k}e^{${k}x}`, `e^{${k}x}`, `${k}xe^{${k}x}`, `${k - 1}e^{${k}x}`]),
@@ -533,6 +637,7 @@ function makeDerivProblem() {
 
   if (kind === 'log') {
     return {
+      difficulty: 2,
       expr: `\\dfrac{d}{dx}\\!\\left[\\ln x\\right]`,
       answer: '\\dfrac{1}{x}',
       options: shuffle(['\\dfrac{1}{x}', '\\dfrac{-1}{x^2}', 'x', '\\ln x']),
@@ -540,12 +645,101 @@ function makeDerivProblem() {
     };
   }
 
-  // definition of derivative (limit form)
+  if (kind === 'definition') {
+    return {
+      difficulty: 5,
+      expr: `\\lim_{h \\to 0}\\,\\dfrac{(x+h)^2 - x^2}{h}`,
+      answer: '2x',
+      options: shuffle(['2x', 'x', 'x^2', '0']),
+      explain: `Expand numerator: $2xh + h^2$. Divide by $h$: $2x+h \\to 2x$.`,
+    };
+  }
+
+  // ---------- HARD VARIANTS ----------
+
+  if (kind === 'productChain') {
+    return {
+      difficulty: 6,
+      expr: `\\dfrac{d}{dx}\\!\\left[x^2 e^{3x}\\right]`,
+      answer: '2xe^{3x} + 3x^2 e^{3x}',
+      options: shuffle([
+        '2xe^{3x} + 3x^2 e^{3x}',
+        '2x \\cdot 3e^{3x}',
+        '6xe^{3x}',
+        '2xe^{3x} + x^2 e^{3x}',
+      ]),
+      explain: `Product + chain: $(x^2)'e^{3x} + x^2(e^{3x})' = 2xe^{3x} + 3x^2 e^{3x}$.`,
+    };
+  }
+
+  if (kind === 'quotientChain') {
+    return {
+      difficulty: 7,
+      expr: `\\dfrac{d}{dx}\\!\\left[\\dfrac{\\sin x}{x^2 + 1}\\right]`,
+      answer: '\\dfrac{(\\cos x)(x^2+1) - 2x\\sin x}{(x^2+1)^2}',
+      options: shuffle([
+        '\\dfrac{(\\cos x)(x^2+1) - 2x\\sin x}{(x^2+1)^2}',
+        '\\dfrac{\\cos x}{2x}',
+        '\\dfrac{\\cos x - 2x}{(x^2+1)^2}',
+        '\\dfrac{(\\cos x)(x^2+1) + 2x\\sin x}{(x^2+1)^2}',
+      ]),
+      explain: `Quotient rule: $\\dfrac{f'g - fg'}{g^2}$ with $f=\\sin x$, $g=x^2+1$.`,
+    };
+  }
+
+  if (kind === 'higherOrder') {
+    const f = pick([
+      { e: '\\sin x', n: 4, a: '\\sin x', d: ['\\cos x', '-\\sin x', '-\\cos x'], why: 'Cycle: sin, cos, -sin, -cos, sin…' },
+      { e: 'x^4', n: 3, a: '24x', d: ['4x^3', '12x^2', '24'], why: '$x^4 \\to 4x^3 \\to 12x^2 \\to 24x$.' },
+      { e: 'e^{2x}', n: 3, a: '8e^{2x}', d: ['2e^{2x}', '4e^{2x}', '6e^{2x}'], why: 'Each derivative multiplies by 2: $2^3 = 8$.' },
+    ]);
+    return {
+      difficulty: 6,
+      expr: `\\dfrac{d^{${f.n}}}{dx^{${f.n}}}\\!\\left[${f.e}\\right]`,
+      answer: f.a,
+      options: shuffle([f.a, ...f.d]),
+      explain: f.why,
+    };
+  }
+
+  if (kind === 'atPoint') {
+    const cases = [
+      { e: 'x^3 - 2x + 1', at: 2, a: '10', d: ['5', '6', '8'], why: `$f'(x)=3x^2-2$, $f'(2)=10$.` },
+      { e: '\\sqrt{x}', at: 4, a: '\\tfrac{1}{4}', d: ['\\tfrac{1}{2}', '2', '\\tfrac{1}{8}'], why: `$f'(x)=\\tfrac{1}{2\\sqrt{x}}$, $f'(4) = \\tfrac{1}{4}$.` },
+      { e: '\\ln x', at: 'e', a: '\\dfrac{1}{e}', d: ['e', '1', '0'], why: `$f'(x) = 1/x$, so $f'(e) = 1/e$.` },
+    ];
+    const c = pick(cases);
+    return {
+      difficulty: 5,
+      expr: `\\text{Find } f'(${c.at}) \\text{ where } f(x) = ${c.e}.`,
+      answer: c.a,
+      options: shuffle([c.a, ...c.d]),
+      explain: c.why,
+    };
+  }
+
+  if (kind === 'tangent') {
+    return {
+      difficulty: 6,
+      expr: `\\text{Equation of the tangent line to } y = x^3 - 3x \\text{ at } x=2.`,
+      answer: 'y = 9x - 16',
+      options: shuffle(['y = 9x - 16', 'y = 9x + 2', 'y = 3x^2 - 3', 'y = 6x - 4']),
+      explain: `$y(2)=2$, $y'(2)=3(4)-3=9$. Line: $y-2 = 9(x-2) \\Rightarrow y = 9x - 16$.`,
+    };
+  }
+
+  // logChain: derivative of ln(g(x)) using chain rule
   return {
-    expr: `\\lim_{h \\to 0}\\,\\dfrac{(x+h)^2 - x^2}{h}`,
-    answer: '2x',
-    options: shuffle(['2x', 'x', 'x^2', '0']),
-    explain: `Expand numerator: $2xh + h^2$. Divide by $h$: $2x+h \\to 2x$.`,
+    difficulty: 6,
+    expr: `\\dfrac{d}{dx}\\!\\left[\\ln(x^2 + 1)\\right]`,
+    answer: '\\dfrac{2x}{x^2 + 1}',
+    options: shuffle([
+      '\\dfrac{2x}{x^2 + 1}',
+      '\\dfrac{1}{x^2 + 1}',
+      '\\dfrac{2x}{\\ln(x^2 + 1)}',
+      '\\ln(2x)',
+    ]),
+    explain: `$\\dfrac{d}{dx}\\ln(g) = \\dfrac{g'(x)}{g(x)} = \\dfrac{2x}{x^2+1}$.`,
   };
 }
 
@@ -553,7 +747,10 @@ function makeDerivProblem() {
 //  UNIT 3 · CHAIN REACTION
 // ============================================================
 function makeChainProblem() {
-  const kind = pick(['chainTrig', 'chainExp', 'chainPow', 'implicit', 'inverseTrig', 'inverseFn']);
+  const kind = pick([
+    'chainTrig', 'chainExp', 'chainPow', 'implicit', 'inverseTrig', 'inverseFn',
+    'doubleChain', 'implicitPoint', 'logDiff', 'inverseTrigChain', 'tripleChain',
+  ]);
 
   if (kind === 'chainTrig') {
     const k = pick([2, 3, 4, 5]);
@@ -564,6 +761,7 @@ function makeChainProblem() {
     ]);
     const which = pick(['sin', 'cos']);
     return {
+      difficulty: 4,
       layers: [`\\${which}(\\cdot)`, inner.e],
       expr: `\\dfrac{d}{dx}\\!\\left[\\${which}\\!\\left(${inner.e}\\right)\\right]`,
       answer: which === 'sin'
@@ -590,6 +788,7 @@ function makeChainProblem() {
       { e: `\\sin x`, d: `\\cos x` },
     ]);
     return {
+      difficulty: 4,
       layers: [`e^{(\\cdot)}`, inner.e],
       expr: `\\dfrac{d}{dx}\\!\\left[e^{${inner.e}}\\right]`,
       answer: `${inner.d} \\cdot e^{${inner.e}}`,
@@ -610,6 +809,7 @@ function makeChainProblem() {
       { e: `x^2 - 3`, d: `2x` },
     ]);
     return {
+      difficulty: 4,
       layers: [`(\\cdot)^{${n}}`, inner.e],
       expr: `\\dfrac{d}{dx}\\!\\left[(${inner.e})^{${n}}\\right]`,
       answer: `${n}(${inner.e})^{${n - 1}} \\cdot ${inner.d}`,
@@ -624,9 +824,9 @@ function makeChainProblem() {
   }
 
   if (kind === 'implicit') {
-    // x² + y² = 25, find dy/dx
     const c = pick([9, 16, 25, 36]);
     return {
+      difficulty: 5,
       expr: `x^2 + y^2 = ${c}, \\quad \\dfrac{dy}{dx} = ?`,
       answer: '-\\dfrac{x}{y}',
       options: shuffle(['-\\dfrac{x}{y}', '\\dfrac{x}{y}', '-\\dfrac{y}{x}', '\\dfrac{-2x}{2y}']),
@@ -641,6 +841,7 @@ function makeChainProblem() {
       { e: '\\arctan x', a: '\\dfrac{1}{1+x^2}', d: ['\\dfrac{1}{\\sqrt{1-x^2}}', '\\dfrac{-1}{1+x^2}', '\\sec^2 x'] },
     ]);
     return {
+      difficulty: 5,
       expr: `\\dfrac{d}{dx}\\!\\left[${t.e}\\right]`,
       answer: t.a,
       options: shuffle([t.a, ...t.d]),
@@ -648,15 +849,100 @@ function makeChainProblem() {
     };
   }
 
-  // inverse function: if f(2)=5 and f'(2)=4, then (f⁻¹)'(5)=1/4
-  const a = pick([2, 3, 5]);
-  const b = pick([2, 3, 4, 5]);
-  const fp = pick([2, 3, 4, 5]);
+  if (kind === 'inverseFn') {
+    const a = pick([2, 3, 5]);
+    const b = pick([2, 3, 4, 5]);
+    const fp = pick([2, 3, 4, 5]);
+    return {
+      difficulty: 5,
+      expr: `\\text{If } f(${a})=${b} \\text{ and } f'(${a})=${fp}, \\text{ then } (f^{-1})'(${b}) = ?`,
+      answer: `\\dfrac{1}{${fp}}`,
+      options: shuffle([`\\dfrac{1}{${fp}}`, `${fp}`, `\\dfrac{1}{${a}}`, `\\dfrac{1}{${b}}`]),
+      explain: `$(f^{-1})'(b) = \\dfrac{1}{f'(a)}$ where $f(a)=b$.`,
+    };
+  }
+
+  // ---------- HARD VARIANTS ----------
+
+  if (kind === 'doubleChain') {
+    return {
+      difficulty: 7,
+      layers: ['\\sin(\\cdot)', '\\cos(\\cdot)', 'x^2'],
+      expr: `\\dfrac{d}{dx}\\!\\left[\\sin(\\cos(x^2))\\right]`,
+      answer: '-2x\\sin(x^2)\\cos(\\cos(x^2))',
+      options: shuffle([
+        '-2x\\sin(x^2)\\cos(\\cos(x^2))',
+        '\\cos(\\cos(x^2))',
+        '2x\\cos(\\cos(x^2))',
+        '-2x\\cos(\\sin(x^2))',
+      ]),
+      explain: `Outside in: $\\cos(\\cos x^2) \\cdot (-\\sin x^2) \\cdot 2x$.`,
+    };
+  }
+
+  if (kind === 'tripleChain') {
+    return {
+      difficulty: 8,
+      layers: ['e^{(\\cdot)}', '\\sin(\\cdot)', '3x'],
+      expr: `\\dfrac{d}{dx}\\!\\left[e^{\\sin(3x)}\\right]`,
+      answer: '3\\cos(3x)\\cdot e^{\\sin(3x)}',
+      options: shuffle([
+        '3\\cos(3x)\\cdot e^{\\sin(3x)}',
+        '\\cos(3x)\\cdot e^{\\sin(3x)}',
+        'e^{\\sin(3x)}',
+        '3\\sin(3x)\\cdot e^{\\cos(3x)}',
+      ]),
+      explain: `Three nested layers: $e^u \\cdot u' = e^{\\sin 3x} \\cdot \\cos(3x) \\cdot 3$.`,
+    };
+  }
+
+  if (kind === 'implicitPoint') {
+    return {
+      difficulty: 6,
+      expr: `\\text{For } x^2 + y^2 = 25, \\text{ find } \\dfrac{dy}{dx} \\text{ at the point } (3, 4).`,
+      answer: '-\\tfrac{3}{4}',
+      options: shuffle(['-\\tfrac{3}{4}', '\\tfrac{3}{4}', '-\\tfrac{4}{3}', '\\tfrac{4}{3}']),
+      explain: `$y' = -x/y = -3/4$.`,
+    };
+  }
+
+  if (kind === 'logDiff') {
+    return {
+      difficulty: 8,
+      expr: `\\dfrac{d}{dx}\\!\\left[x^x\\right]`,
+      answer: 'x^x(1 + \\ln x)',
+      options: shuffle([
+        'x^x(1 + \\ln x)',
+        'x \\cdot x^{x-1}',
+        'x^x \\ln x',
+        'x^x',
+      ]),
+      explain: `Take $\\ln$ of both sides: $\\ln y = x\\ln x \\Rightarrow y'/y = \\ln x + 1 \\Rightarrow y' = x^x(1+\\ln x)$.`,
+    };
+  }
+
+  if (kind === 'inverseTrigChain') {
+    return {
+      difficulty: 7,
+      expr: `\\dfrac{d}{dx}\\!\\left[\\arctan(x^2)\\right]`,
+      answer: '\\dfrac{2x}{1 + x^4}',
+      options: shuffle([
+        '\\dfrac{2x}{1 + x^4}',
+        '\\dfrac{1}{1 + x^4}',
+        '\\dfrac{2x}{1 + x^2}',
+        '\\dfrac{2x}{\\sqrt{1 - x^4}}',
+      ]),
+      explain: `$(\\arctan u)' = \\dfrac{u'}{1+u^2}$ with $u = x^2$.`,
+    };
+  }
+
+  // Fallback (shouldn't hit, but safe)
   return {
-    expr: `\\text{If } f(${a})=${b} \\text{ and } f'(${a})=${fp}, \\text{ then } (f^{-1})'(${b}) = ?`,
-    answer: `\\dfrac{1}{${fp}}`,
-    options: shuffle([`\\dfrac{1}{${fp}}`, `${fp}`, `\\dfrac{1}{${a}}`, `\\dfrac{1}{${b}}`]),
-    explain: `$(f^{-1})'(b) = \\dfrac{1}{f'(a)}$ where $f(a)=b$.`,
+    difficulty: 5,
+    expr: `\\dfrac{d}{dx}\\!\\left[(2x+1)^4\\right]`,
+    answer: '8(2x+1)^3',
+    options: shuffle(['8(2x+1)^3', '4(2x+1)^3', '(2x+1)^3', '8(2x+1)^4']),
+    explain: `Chain: $4(2x+1)^3 \\cdot 2 = 8(2x+1)^3$.`,
   };
 }
 
@@ -667,6 +953,7 @@ function rateRushBank() {
   return [
     // ---- Related rates (anim variants kept for visual variety)
     {
+      difficulty: 5,
       scene: 'balloon',
       scenario: `A spherical balloon inflates at $12\\,\\text{cm}^3/\\text{s}$. Find $\\dfrac{dr}{dt}$ when $r=5\\,\\text{cm}$. (Use $V=\\tfrac{4}{3}\\pi r^3$.)`,
       answer: '\\dfrac{12}{100\\pi}\\,\\text{cm/s}',
@@ -674,6 +961,7 @@ function rateRushBank() {
       explain: `$\\dfrac{dV}{dt} = 4\\pi r^2 \\dfrac{dr}{dt} \\Rightarrow 12 = 100\\pi \\dfrac{dr}{dt}$.`,
     },
     {
+      difficulty: 5,
       scene: 'ladder',
       scenario: `A 10-ft ladder slides down a wall. The bottom moves out at $2\\,\\text{ft/s}$. How fast is the top moving when the bottom is $6\\,\\text{ft}$ from the wall?`,
       answer: '-\\tfrac{3}{2}\\,\\text{ft/s}',
@@ -681,6 +969,7 @@ function rateRushBank() {
       explain: `$x^2+y^2=100$. At $x=6$, $y=8$. $2x x'+2y y'=0 \\Rightarrow y'=-12/8 = -1.5$.`,
     },
     {
+      difficulty: 6,
       scene: 'cone',
       scenario: `Water drains from a cone with $r = h/2$. Volume decreases at $4\\,\\text{cm}^3/\\text{s}$. Find $\\dfrac{dh}{dt}$ when $h=6\\,\\text{cm}$.`,
       answer: '-\\dfrac{4}{9\\pi}\\,\\text{cm/s}',
@@ -688,6 +977,7 @@ function rateRushBank() {
       explain: `$V = \\dfrac{\\pi h^3}{12}$, so $\\dfrac{dV}{dt} = \\dfrac{\\pi h^2}{4}\\dfrac{dh}{dt}$.`,
     },
     {
+      difficulty: 5,
       scene: 'balloon',
       scenario: `Sphere's surface area grows at $8\\,\\text{cm}^2/\\text{s}$. Find $\\dfrac{dr}{dt}$ when $r=2$.`,
       answer: '\\dfrac{1}{2\\pi}\\,\\text{cm/s}',
@@ -695,6 +985,7 @@ function rateRushBank() {
       explain: `$S = 4\\pi r^2 \\Rightarrow \\dfrac{dS}{dt} = 8\\pi r\\dfrac{dr}{dt}$.`,
     },
     {
+      difficulty: 7,
       scene: 'cone',
       scenario: `A 6-ft person walks away from a 15-ft lamppost at $4\\,\\text{ft/s}$. How fast is the shadow's tip moving?`,
       answer: '\\dfrac{20}{3}\\,\\text{ft/s}',
@@ -704,6 +995,7 @@ function rateRushBank() {
 
     // ---- Motion problems
     {
+      difficulty: 4,
       scene: 'ladder',
       scenario: `A particle's position is $s(t) = t^3 - 6t^2 + 9t$. Find the velocity at $t=2$.`,
       answer: '-3',
@@ -711,6 +1003,7 @@ function rateRushBank() {
       explain: `$v(t) = s'(t) = 3t^2 - 12t + 9$. At $t=2$: $12-24+9=-3$.`,
     },
     {
+      difficulty: 5,
       scene: 'balloon',
       scenario: `Position $s(t)=t^3-6t^2+9t$. When is the particle at rest?`,
       answer: 't = 1 \\text{ or } t = 3',
@@ -718,6 +1011,7 @@ function rateRushBank() {
       explain: `Rest ⇔ $v=0 \\Rightarrow 3(t-1)(t-3)=0$.`,
     },
     {
+      difficulty: 5,
       scene: 'cone',
       scenario: `If $s(t) = -16t^2 + 64t$, what is the maximum height of the projectile?`,
       answer: '64\\,\\text{ft}',
@@ -727,6 +1021,7 @@ function rateRushBank() {
 
     // ---- L'Hôpital
     {
+      difficulty: 4,
       scene: 'balloon',
       scenario: `Use L'Hôpital: $\\lim_{x \\to 0}\\dfrac{\\sin x}{x}$`,
       answer: '1',
@@ -734,6 +1029,7 @@ function rateRushBank() {
       explain: `Form $0/0$: derivatives give $\\dfrac{\\cos x}{1} \\to 1$.`,
     },
     {
+      difficulty: 7,
       scene: 'cone',
       scenario: `Use L'Hôpital: $\\lim_{x \\to 0}\\dfrac{e^x - 1 - x}{x^2}$`,
       answer: '\\tfrac{1}{2}',
@@ -741,6 +1037,7 @@ function rateRushBank() {
       explain: `Apply twice: $\\dfrac{e^x - 1}{2x} \\to \\dfrac{e^x}{2} \\to \\tfrac{1}{2}$.`,
     },
     {
+      difficulty: 5,
       scene: 'ladder',
       scenario: `Use L'Hôpital: $\\lim_{x \\to \\infty}\\dfrac{\\ln x}{x}$`,
       answer: '0',
@@ -750,6 +1047,7 @@ function rateRushBank() {
 
     // ---- Linear approximation
     {
+      difficulty: 5,
       scene: 'balloon',
       scenario: `Use the tangent line to $f(x)=\\sqrt{x}$ at $x=9$ to approximate $\\sqrt{9.2}$.`,
       answer: '\\approx 3.0333',
@@ -757,11 +1055,76 @@ function rateRushBank() {
       explain: `$L(x) = 3 + \\tfrac{1}{6}(x-9)$. $L(9.2) = 3 + 0.2/6 \\approx 3.0333$.`,
     },
     {
+      difficulty: 4,
       scene: 'ladder',
       scenario: `If $f(2)=5$ and $f'(2)=-3$, estimate $f(2.1)$ using a linear approximation.`,
       answer: '4.7',
       options: ['4.7', '5.3', '4.97', '2.7'],
       explain: `$L(2.1) = 5 + (-3)(0.1) = 4.7$.`,
+    },
+
+    // ---- HARD: direction change, speed sign analysis
+    {
+      difficulty: 7,
+      scene: 'ladder',
+      scenario: `A particle moves with $s(t) = t^3 - 6t^2 + 9t$ for $t \\ge 0$. At which times does the particle change direction?`,
+      answer: 't = 1 \\text{ and } t = 3',
+      options: ['t = 1 \\text{ and } t = 3', 't = 2 \\text{ only}', 't = 0 \\text{ and } t = 2', '\\text{Never}'],
+      explain: `$v(t) = 3(t-1)(t-3)$ changes sign at both $t=1$ and $t=3$ (positive → negative → positive).`,
+    },
+    {
+      difficulty: 7,
+      scene: 'balloon',
+      scenario: `Particle: $v(t) = t^2 - 4t + 3$. When is the particle speeding up on $[0, 4]$?`,
+      answer: 't \\in (1, 2) \\cup (3, 4]',
+      options: ['t \\in (1, 2) \\cup (3, 4]', 't \\in (0, 1) \\cup (2, 3)', 't \\in (1, 3)', 't \\in (0, 2)'],
+      explain: `Speeding up ⇔ $v$ and $a$ same sign. $v$: + on (0,1)∪(3,4), − on (1,3). $a = 2t-4$: − on (0,2), + on (2,4). Both same sign on $(1,2)$ and $(3,4)$.`,
+    },
+
+    // ---- HARD: iterated L'Hôpital
+    {
+      difficulty: 8,
+      scene: 'cone',
+      scenario: `Evaluate $\\lim_{x \\to 0}\\dfrac{x - \\sin x}{x^3}$.`,
+      answer: '\\tfrac{1}{6}',
+      options: ['\\tfrac{1}{6}', '0', '\\tfrac{1}{3}', '\\tfrac{1}{2}'],
+      explain: `Three L'Hôpitals: $\\dfrac{1-\\cos x}{3x^2} \\to \\dfrac{\\sin x}{6x} \\to \\dfrac{\\cos x}{6} \\to \\tfrac{1}{6}$.`,
+    },
+    {
+      difficulty: 7,
+      scene: 'ladder',
+      scenario: `Evaluate $\\lim_{x \\to \\infty} x \\sin\\!\\left(\\dfrac{1}{x}\\right)$.`,
+      answer: '1',
+      options: ['1', '0', '\\infty', '\\tfrac{1}{2}'],
+      explain: `Let $u = 1/x$: as $x \\to \\infty$, $u \\to 0^+$, and the limit becomes $\\dfrac{\\sin u}{u} \\to 1$.`,
+    },
+
+    // ---- HARD: linearization with error
+    {
+      difficulty: 6,
+      scene: 'balloon',
+      scenario: `Use the tangent line to $f(x) = \\sqrt[3]{x}$ at $x = 8$ to estimate $\\sqrt[3]{8.3}$.`,
+      answer: '\\approx 2.025',
+      options: ['\\approx 2.025', '\\approx 2.083', '\\approx 2.100', '\\approx 1.975'],
+      explain: `$f'(x) = \\tfrac{1}{3}x^{-2/3}$, $f'(8) = \\tfrac{1}{12}$. $L(8.3) = 2 + \\tfrac{0.3}{12} = 2.025$.`,
+    },
+
+    // ---- HARD: related rates with non-trivial geometry
+    {
+      difficulty: 8,
+      scene: 'cone',
+      scenario: `Two ships: A heads east at $25\\,\\text{km/h}$, B heads north at $20\\,\\text{km/h}$, both leaving the same port at noon. How fast is the distance between them changing at 2pm?`,
+      answer: '\\sqrt{1025}\\,\\text{km/h} \\approx 32',
+      options: ['\\sqrt{1025}\\,\\text{km/h} \\approx 32', '45\\,\\text{km/h}', '5\\,\\text{km/h}', '\\sqrt{41}\\,\\text{km/h}'],
+      explain: `At 2pm: $x=50, y=40, D=\\sqrt{4100}$. $D\\,D' = xx' + yy' = 50(25)+40(20) = 2050$. $D' = 2050/\\sqrt{4100} = \\sqrt{1025}$.`,
+    },
+    {
+      difficulty: 7,
+      scene: 'balloon',
+      scenario: `A 12-ft ladder leans against a wall. The top slides down at $3\\,\\text{ft/s}$. Find the rate of change of the angle $\\theta$ between the ladder and the ground when the bottom is $6\\,\\text{ft}$ from the wall.`,
+      answer: '-\\tfrac{1}{2}\\,\\text{rad/s}',
+      options: ['-\\tfrac{1}{2}\\,\\text{rad/s}', '-\\tfrac{1}{4}\\,\\text{rad/s}', '-\\dfrac{1}{2\\sqrt{3}}\\,\\text{rad/s}', '-\\dfrac{\\sqrt{3}}{2}\\,\\text{rad/s}'],
+      explain: `$\\sin\\theta = y/12$, so $\\cos\\theta\\cdot\\theta' = y'/12 = -1/4$. At $x=6$, $\\cos\\theta = 1/2$, so $\\theta' = -\\tfrac{1}{2}$.`,
     },
   ];
 }
@@ -771,15 +1134,16 @@ function rateRushBank() {
 //  (Mix of slider-style optimization + multiple-choice MVT/curve sketching)
 // ============================================================
 function buildOptimSet() {
-  // 5 slider problems + 5 multiple-choice
-  const slider = shuffle(optimSliderBank()).slice(0, 5).map(p => ({ ...p, ui: 'slider' }));
+  // 5 slider problems + 5 multiple-choice, then sort by difficulty
+  const slider = shuffle(optimSliderBank()).slice(0, 5).map(p => ({ ...p, ui: 'slider', difficulty: p.difficulty || 6 }));
   const mc     = shuffle(optimMCBank()).slice(0, 5).map(p => ({ ...p, ui: 'mc' }));
-  return shuffle(slider.concat(mc));
+  return slider.concat(mc).sort(byDifficulty);
 }
 
 function optimSliderBank() {
   return [
     {
+      difficulty: 6,
       title: 'BOX BUILDER',
       desc: `You have $120\\,\\text{in}^2$ of cardboard. Open-top, square-base box: $V = s^2 h$ with $4sh + s^2 = 120$, so $h = \\dfrac{120 - s^2}{4s}$. Find $s$ that maximizes $V$.`,
       f: s => (s * s) * ((120 - s * s) / (4 * s)),
@@ -789,6 +1153,7 @@ function optimSliderBank() {
       explain: `$\\dfrac{dV}{ds} = 0 \\Rightarrow 3s^2 = 120 \\Rightarrow s = \\sqrt{40} \\approx 6.32$.`,
     },
     {
+      difficulty: 5,
       title: 'FENCED FIELD',
       desc: `Fence a rectangle along a river (only 3 sides): $2x + y = 200$. Maximize area $A = xy$.`,
       f: x => x * (200 - 2 * x),
@@ -848,46 +1213,103 @@ function optimSliderBank() {
 function optimMCBank() {
   return [
     {
+      difficulty: 4,
       expr: `\\text{MVT: } f(x) = x^2 \\text{ on } [1, 3]. \\text{ Find } c \\text{ where } f'(c) = \\dfrac{f(3) - f(1)}{3 - 1}.`,
       answer: '2',
       options: ['2', '1', '3', '\\sqrt{2}'],
       explain: `$\\dfrac{9 - 1}{2} = 4$. $f'(c) = 2c = 4 \\Rightarrow c = 2$.`,
     },
     {
+      difficulty: 4,
       expr: `\\text{Where is } f(x) = x^3 - 3x \\text{ increasing?}`,
       answer: 'x < -1 \\text{ or } x > 1',
       options: ['x < -1 \\text{ or } x > 1', '-1 < x < 1', 'x > 0', 'x < 0'],
       explain: `$f'(x) = 3x^2 - 3 > 0$ when $|x| > 1$.`,
     },
     {
+      difficulty: 5,
       expr: `\\text{Find the inflection point of } f(x) = x^3 - 6x^2 + 5.`,
       answer: 'x = 2',
       options: ['x = 2', 'x = 0', 'x = -2', 'x = 4'],
       explain: `$f''(x) = 6x - 12 = 0 \\Rightarrow x = 2$, sign changes there.`,
     },
     {
+      difficulty: 5,
       expr: `\\text{EVT: max of } f(x) = x^3 - 3x \\text{ on } [-2, 2]?`,
       answer: '2',
       options: ['2', '-2', '0', '4'],
       explain: `Critical points $x = \\pm 1$. Compare $f(-2)=-2, f(-1)=2, f(1)=-2, f(2)=2$. Max is $2$.`,
     },
     {
+      difficulty: 4,
       expr: `\\text{Where is } f(x) = x^3 - 6x^2 + 9x \\text{ concave up?}`,
       answer: 'x > 2',
       options: ['x > 2', 'x < 2', 'x > 1', 'x < 1'],
       explain: `$f''(x) = 6x - 12 > 0 \\Rightarrow x > 2$.`,
     },
     {
+      difficulty: 5,
       expr: `\\text{At a local max of a smooth } f, \\text{ which is true?}`,
       answer: "f'(c) = 0 \\text{ and } f''(c) \\le 0",
       options: ["f'(c) = 0 \\text{ and } f''(c) \\le 0", "f'(c) > 0", "f''(c) > 0", "f'(c) \\text{ does not exist}"],
       explain: `Necessary: $f'(c)=0$; sufficient (2nd-deriv test): $f''(c) < 0$.`,
     },
     {
+      difficulty: 4,
       expr: `\\text{Critical points of } f(x) = x^4 - 4x^3?`,
       answer: 'x = 0, 3',
       options: ['x = 0, 3', 'x = 0, 4', 'x = 3 \\text{ only}', 'x = -3, 0'],
       explain: `$f'(x) = 4x^3 - 12x^2 = 4x^2(x - 3) = 0$.`,
+    },
+
+    // ---------- HARD VARIANTS ----------
+
+    {
+      difficulty: 7,
+      expr: `\\text{Absolute minimum of } f(x) = x^4 - 8x^2 + 16 \\text{ on } [-3, 3]?`,
+      answer: '0',
+      options: ['0', '16', '-16', '25'],
+      explain: `$f'(x) = 4x^3-16x = 4x(x^2-4)$, zero at $x=0, \\pm 2$. Compare: $f(\\pm 2) = 0$, $f(0)=16$, $f(\\pm 3)=25$. Min is $0$.`,
+    },
+    {
+      difficulty: 7,
+      expr: `\\text{The 2nd-derivative test is inconclusive for } f(x) = x^4 \\text{ at } x=0 \\text{ because:}`,
+      answer: "f''(0) = 0",
+      options: ["f''(0) = 0", "f'(0) \\ne 0", "f \\text{ is not continuous}", "x=0 \\text{ is not a critical point}"],
+      explain: `$f''(0)=0$, so the test gives no information. (First-derivative test would show a min.)`,
+    },
+    {
+      difficulty: 6,
+      expr: `\\text{Where is } f(x) = x^4 - 4x^3 \\text{ both decreasing and concave up?}`,
+      answer: '2 < x < 3',
+      options: ['2 < x < 3', '0 < x < 2', 'x > 3', 'x < 0'],
+      explain: `$f'<0$ on $(0,3)$; $f''>0$ on $x<0$ or $x>2$. Intersection: $(2, 3)$.`,
+    },
+    {
+      difficulty: 7,
+      expr: `\\text{MVT does NOT apply to } f(x) = |x - 1| \\text{ on } [0, 3] \\text{ because:}`,
+      answer: 'f \\text{ is not differentiable at } x = 1',
+      options: [
+        'f \\text{ is not differentiable at } x = 1',
+        'f \\text{ is not continuous on } [0, 3]',
+        'f(0) \\neq f(3)',
+        '[0, 3] \\text{ is not closed}',
+      ],
+      explain: `MVT requires continuity on $[a,b]$ AND differentiability on $(a,b)$. The corner at $x=1$ breaks differentiability.`,
+    },
+    {
+      difficulty: 8,
+      expr: `\\text{If } f(x) = \\int_0^x (t^2 - 4)\\,dt, \\text{ at what } x \\text{ does } f \\text{ have a local max on } [-3, 3]?`,
+      answer: 'x = -2',
+      options: ['x = -2', 'x = 2', 'x = 0', 'x = 3'],
+      explain: `$f'(x) = x^2-4 = 0$ at $x = \\pm 2$. Sign of $f'$: + on $(-\\infty,-2)$, − on $(-2,2)$, + on $(2,\\infty)$. So local max at $x=-2$.`,
+    },
+    {
+      difficulty: 7,
+      expr: `\\text{For what value of } c \\text{ does MVT predict } f'(c) = 0 \\text{ on } f(x) = x^3 - 3x^2 + 2, \\ [0, 3]?`,
+      answer: 'c = 2',
+      options: ['c = 2', 'c = 1', 'c = \\tfrac{3}{2}', 'c = 0'],
+      explain: `$\\dfrac{f(3)-f(0)}{3} = \\dfrac{2-2}{3} = 0$. Solve $3c^2 - 6c = 0 \\Rightarrow c=0$ or $2$; only $c=2$ is in $(0,3)$.`,
     },
   ];
 }
@@ -896,11 +1318,15 @@ function optimMCBank() {
 //  UNIT 6 · INTEGRAL INVADERS
 // ============================================================
 function makeIntegProblem() {
-  const kind = pick(['power', 'trig', 'exp', 'recip', 'usub', 'riemann']);
+  const kind = pick([
+    'power', 'trig', 'exp', 'recip', 'usub', 'riemann',
+    'usubTrig', 'usubDefinite', 'integProperty', 'riemannLimit', 'usubChain', 'definiteEval',
+  ]);
 
   if (kind === 'power') {
     const n = pick([2, 3, 4, 5]);
     return {
+      difficulty: 2,
       expr: `\\int x^{${n}}\\,dx`,
       answer: `\\dfrac{x^{${n + 1}}}{${n + 1}} + C`,
       options: shuffle([
@@ -919,11 +1345,18 @@ function makeIntegProblem() {
       { e: '\\sin x',   a: '-\\cos x + C',  d: ['\\cos x + C', '\\sin x + C', '-\\sin x + C'] },
       { e: '\\sec^2 x', a: '\\tan x + C',   d: ['\\sec x + C', '-\\tan x + C', '\\cot x + C'] },
     ]);
-    return { expr: `\\int ${t.e}\\,dx`, answer: t.a, options: shuffle([t.a, ...t.d]), explain: `Reverse the trig derivative.` };
+    return {
+      difficulty: 3,
+      expr: `\\int ${t.e}\\,dx`,
+      answer: t.a,
+      options: shuffle([t.a, ...t.d]),
+      explain: `Reverse the trig derivative.`,
+    };
   }
 
   if (kind === 'exp') {
     return {
+      difficulty: 2,
       expr: `\\int e^x\\,dx`,
       answer: 'e^x + C',
       options: shuffle(['e^x + C', 'xe^x + C', '\\dfrac{e^x}{x} + C', '\\ln x + C']),
@@ -933,6 +1366,7 @@ function makeIntegProblem() {
 
   if (kind === 'recip') {
     return {
+      difficulty: 3,
       expr: `\\int \\dfrac{1}{x}\\,dx`,
       answer: '\\ln|x| + C',
       options: shuffle(['\\ln|x| + C', '\\dfrac{-1}{x^2} + C', '\\dfrac{1}{x^2} + C', 'x\\ln x + C']),
@@ -941,8 +1375,8 @@ function makeIntegProblem() {
   }
 
   if (kind === 'usub') {
-    const k = pick([2, 3, 4]);
     return {
+      difficulty: 5,
       expr: `\\int 2x \\cdot e^{x^2}\\,dx`,
       answer: 'e^{x^2} + C',
       options: shuffle(['e^{x^2} + C', '\\dfrac{e^{x^2}}{2} + C', 'x^2 e^{x^2} + C', '2e^{x^2} + C']),
@@ -950,24 +1384,104 @@ function makeIntegProblem() {
     };
   }
 
-  // Riemann sum
-  const choices = [
-    { e: `\\text{Right Riemann sum for } f(x)=x^2 \\text{ on } [0, 2] \\text{ with } n = 2 \\text{ subintervals}`,
-      a: '5', opts: ['5', '1', '4', '2'], why: `Widths 1; $f(1)+f(2)=1+4=5$.` },
-    { e: `\\text{Left Riemann sum for } f(x)=x \\text{ on } [0, 4] \\text{ with } n = 4`,
-      a: '6', opts: ['6', '10', '8', '4'], why: `Widths 1; $f(0)+f(1)+f(2)+f(3)=0+1+2+3=6$.` },
-    { e: `\\text{Midpoint Riemann sum for } f(x)=2x \\text{ on } [0, 4] \\text{ with } n=2`,
-      a: '16', opts: ['16', '8', '12', '20'], why: `Widths 2; midpoints 1, 3. $2(2)+2(6)=4+12=16$.` },
-  ];
-  const c = pick(choices);
-  return { expr: c.e, answer: c.a, options: shuffle(c.opts), explain: c.why };
+  if (kind === 'riemann') {
+    const choices = [
+      { e: `\\text{Right Riemann sum for } f(x)=x^2 \\text{ on } [0, 2] \\text{ with } n = 2 \\text{ subintervals}`,
+        a: '5', opts: ['5', '1', '4', '2'], why: `Widths 1; $f(1)+f(2)=1+4=5$.` },
+      { e: `\\text{Left Riemann sum for } f(x)=x \\text{ on } [0, 4] \\text{ with } n = 4`,
+        a: '6', opts: ['6', '10', '8', '4'], why: `Widths 1; $f(0)+f(1)+f(2)+f(3)=0+1+2+3=6$.` },
+      { e: `\\text{Midpoint Riemann sum for } f(x)=2x \\text{ on } [0, 4] \\text{ with } n=2`,
+        a: '16', opts: ['16', '8', '12', '20'], why: `Widths 2; midpoints 1, 3. $2(2)+2(6)=4+12=16$.` },
+    ];
+    const c = pick(choices);
+    return { difficulty: 4, expr: c.e, answer: c.a, options: shuffle(c.opts), explain: c.why };
+  }
+
+  // ---------- HARD VARIANTS ----------
+
+  if (kind === 'usubTrig') {
+    return {
+      difficulty: 6,
+      expr: `\\int \\sin x \\cos x\\,dx`,
+      answer: '\\dfrac{\\sin^2 x}{2} + C',
+      options: shuffle([
+        '\\dfrac{\\sin^2 x}{2} + C',
+        '\\sin^2 x + C',
+        '-\\dfrac{\\cos^2 x}{2} + C',
+        '\\sin x \\cos x + C',
+      ]),
+      explain: `Let $u = \\sin x$, $du = \\cos x\\,dx$. $\\int u\\,du = \\tfrac{u^2}{2}+C$. (Or $u=\\cos x$ gives $-\\tfrac{\\cos^2 x}{2}+C$ — also valid up to a constant.)`,
+    };
+  }
+
+  if (kind === 'usubChain') {
+    return {
+      difficulty: 7,
+      expr: `\\int x \\sin(x^2)\\,dx`,
+      answer: '-\\dfrac{\\cos(x^2)}{2} + C',
+      options: shuffle([
+        '-\\dfrac{\\cos(x^2)}{2} + C',
+        '-\\cos(x^2) + C',
+        '\\dfrac{\\cos(x^2)}{2} + C',
+        '\\dfrac{x^2 \\sin(x^2)}{2} + C',
+      ]),
+      explain: `Let $u = x^2$, $du = 2x\\,dx$, so $x\\,dx = \\tfrac{du}{2}$. $\\int \\tfrac{\\sin u}{2}\\,du = -\\tfrac{\\cos u}{2}+C$.`,
+    };
+  }
+
+  if (kind === 'usubDefinite') {
+    return {
+      difficulty: 7,
+      expr: `\\int_0^1 2x\\,e^{x^2}\\,dx`,
+      answer: 'e - 1',
+      options: shuffle(['e - 1', 'e', '1 - e^{-1}', '2e']),
+      explain: `Let $u = x^2$, $du = 2x\\,dx$. Bounds: $0 \\to 0$, $1 \\to 1$. $\\int_0^1 e^u\\,du = e - 1$.`,
+    };
+  }
+
+  if (kind === 'integProperty') {
+    return {
+      difficulty: 5,
+      expr: `\\text{If } \\int_0^3 f(x)\\,dx = 5 \\text{ and } \\int_0^3 g(x)\\,dx = -2, \\text{ find } \\int_0^3 (2f(x) - 3g(x))\\,dx.`,
+      answer: '16',
+      options: shuffle(['16', '4', '11', '8']),
+      explain: `Linearity: $2(5) - 3(-2) = 10 + 6 = 16$.`,
+    };
+  }
+
+  if (kind === 'riemannLimit') {
+    return {
+      difficulty: 7,
+      expr: `\\text{Express } \\lim_{n \\to \\infty} \\sum_{i=1}^{n} \\dfrac{2}{n}\\left(1 + \\dfrac{2i}{n}\\right)^3 \\text{ as a definite integral.}`,
+      answer: '\\displaystyle\\int_1^3 x^3\\,dx',
+      options: shuffle([
+        '\\displaystyle\\int_1^3 x^3\\,dx',
+        '\\displaystyle\\int_0^2 x^3\\,dx',
+        '\\displaystyle\\int_1^3 (1+x)^3\\,dx',
+        '\\displaystyle\\int_0^1 (1+2x)^3\\,dx',
+      ]),
+      explain: `$\\Delta x = 2/n$ and sample point $x_i = 1 + 2i/n$ go from $1$ to $3$. The sum is a right Riemann sum for $x^3$ on $[1, 3]$.`,
+    };
+  }
+
+  // definiteEval
+  return {
+    difficulty: 5,
+    expr: `\\int_0^{\\pi} \\sin x\\,dx`,
+    answer: '2',
+    options: shuffle(['2', '0', '1', '\\pi']),
+    explain: `$[-\\cos x]_0^{\\pi} = -(-1) - (-(1)) = 2$.`,
+  };
 }
 
 // ============================================================
 //  UNIT 7 · SLOPE FIELD SHOWDOWN
 // ============================================================
 function makeSlopeProblem() {
-  const kind = pick(['matchField', 'separable', 'expGrowth', 'ivp', 'identifyField']);
+  const kind = pick([
+    'matchField', 'separable', 'expGrowth', 'ivp', 'identifyField',
+    'separableHard', 'cooling', 'expContinuous', 'separableEval',
+  ]);
 
   if (kind === 'matchField') {
     // Show a slope field corresponding to a particular DE, multiple choice
@@ -982,6 +1496,7 @@ function makeSlopeProblem() {
     const c = pick(choices);
     const distrs = shuffle(choices.filter(o => o.de !== c.de)).slice(0, 3);
     return {
+      difficulty: 5,
       kind: 'field',
       field: c.fn,
       prompt: `Which differential equation produces this slope field?`,
@@ -999,6 +1514,7 @@ function makeSlopeProblem() {
     ];
     const c = pick(choices);
     return {
+      difficulty: 5,
       kind: 'mc',
       prompt: `Solve the differential equation:`,
       expr: c.p,
@@ -1019,6 +1535,7 @@ function makeSlopeProblem() {
     ];
     const c = pick(choices);
     return {
+      difficulty: 5,
       kind: 'mc',
       prompt: `Exponential growth/decay:`,
       expr: c.p,
@@ -1030,6 +1547,7 @@ function makeSlopeProblem() {
 
   if (kind === 'ivp') {
     return {
+      difficulty: 4,
       kind: 'mc',
       prompt: `Solve the initial value problem:`,
       expr: `\\dfrac{dy}{dx} = 2x, \\ y(1) = 3`,
@@ -1039,23 +1557,84 @@ function makeSlopeProblem() {
     };
   }
 
-  // identify field: given a DE, describe a feature of its slope field
-  const choices = [
-    { p: `\\text{For } y' = y, \\text{ the slope at } (0, 0) \\text{ is:}`,
-      a: '0', d: ['1', '\\text{undefined}', '\\infty'], why: `$y' = y = 0$ at the origin.` },
-    { p: `\\text{For } y' = x^2, \\text{ the slope along the } y\\text{-axis is:}`,
-      a: '0', d: ['1', '\\text{depends on } y', '\\infty'], why: `$y' = 0$ when $x = 0$ regardless of $y$.` },
-    { p: `\\text{For } y' = x - y, \\text{ the slope at } (1, 1) \\text{ is:}`,
-      a: '0', d: ['1', '2', '-1'], why: `$y' = 1 - 1 = 0$.` },
-  ];
-  const c = pick(choices);
+  if (kind === 'identifyField') {
+    const choices = [
+      { p: `\\text{For } y' = y, \\text{ the slope at } (0, 0) \\text{ is:}`,
+        a: '0', d: ['1', '\\text{undefined}', '\\infty'], why: `$y' = y = 0$ at the origin.` },
+      { p: `\\text{For } y' = x^2, \\text{ the slope along the } y\\text{-axis is:}`,
+        a: '0', d: ['1', '\\text{depends on } y', '\\infty'], why: `$y' = 0$ when $x = 0$ regardless of $y$.` },
+      { p: `\\text{For } y' = x - y, \\text{ the slope at } (1, 1) \\text{ is:}`,
+        a: '0', d: ['1', '2', '-1'], why: `$y' = 1 - 1 = 0$.` },
+    ];
+    const c = pick(choices);
+    return {
+      difficulty: 4,
+      kind: 'mc',
+      prompt: `Identify the slope:`,
+      expr: c.p,
+      answer: c.a,
+      options: shuffle([c.a, ...c.d]),
+      explain: c.why,
+    };
+  }
+
+  // ---------- HARD VARIANTS ----------
+
+  if (kind === 'separableHard') {
+    return {
+      difficulty: 7,
+      kind: 'mc',
+      prompt: `Solve the separable IVP:`,
+      expr: `\\dfrac{dy}{dx} = \\dfrac{x}{y}, \\ y(0) = 2`,
+      answer: 'y = \\sqrt{x^2 + 4}',
+      options: shuffle([
+        'y = \\sqrt{x^2 + 4}',
+        'y = x^2 + 2',
+        'y^2 = x^2 + 2',
+        'y = e^x + 1',
+      ]),
+      explain: `$y\\,dy = x\\,dx \\Rightarrow \\tfrac{y^2}{2} = \\tfrac{x^2}{2} + C$. $y(0)=2 \\Rightarrow C=2$. So $y^2 = x^2 + 4$, $y = \\sqrt{x^2+4}$.`,
+    };
+  }
+
+  if (kind === 'cooling') {
+    return {
+      difficulty: 7,
+      kind: 'mc',
+      prompt: `Newton's law of cooling:`,
+      expr: `\\text{A pie at } 200°\\text{F is placed in a } 70° \\text{ room. After 10 min it cools to } 150°. \\text{ Which model fits?}`,
+      answer: 'T(t) = 70 + 130\\,e^{kt} \\text{ with } k = \\tfrac{1}{10}\\ln(8/13)',
+      options: shuffle([
+        'T(t) = 70 + 130\\,e^{kt} \\text{ with } k = \\tfrac{1}{10}\\ln(8/13)',
+        'T(t) = 200 - 5t',
+        'T(t) = 70 \\cdot 2^{-t/10}',
+        'T(t) = 130 + 70\\,e^{-t/10}',
+      ]),
+      explain: `$\\dfrac{dT}{dt} = k(T - 70)$, so $T = 70 + Ce^{kt}$. $T(0)=200 \\Rightarrow C=130$. $T(10)=150 \\Rightarrow e^{10k}=80/130 = 8/13$.`,
+    };
+  }
+
+  if (kind === 'expContinuous') {
+    return {
+      difficulty: 6,
+      kind: 'mc',
+      prompt: `Continuous-growth model:`,
+      expr: `\\$1000 \\text{ is invested at } 5\\%/\\text{yr compounded continuously. Balance after 3 years?}`,
+      answer: '1000\\,e^{0.15}',
+      options: shuffle(['1000\\,e^{0.15}', '1000(1.05)^3', '1000(1 + 0.05 \\cdot 3)', '1000 \\cdot 0.15']),
+      explain: `$A = Pe^{rt} = 1000\\,e^{0.05 \\cdot 3} = 1000\\,e^{0.15}$.`,
+    };
+  }
+
+  // separableEval: solve and evaluate at a point
   return {
+    difficulty: 7,
     kind: 'mc',
-    prompt: `Identify the slope:`,
-    expr: c.p,
-    answer: c.a,
-    options: shuffle([c.a, ...c.d]),
-    explain: c.why,
+    prompt: `Evaluate the solution:`,
+    expr: `\\text{If } \\dfrac{dy}{dx} = -2xy \\text{ and } y(0)=3, \\text{ find } y(1).`,
+    answer: '3e^{-1}',
+    options: shuffle(['3e^{-1}', '3e', '3 - e', '\\dfrac{3}{e^2}']),
+    explain: `Separable: $\\dfrac{dy}{y} = -2x\\,dx \\Rightarrow \\ln|y| = -x^2 + C \\Rightarrow y = 3e^{-x^2}$. $y(1) = 3e^{-1}$.`,
   };
 }
 
@@ -1063,7 +1642,10 @@ function makeSlopeProblem() {
 //  UNIT 8 · AREA ARENA
 // ============================================================
 function makeAreaProblem() {
-  const kind = pick(['between', 'disk', 'washer', 'crossSection', 'average', 'accumulation']);
+  const kind = pick([
+    'between', 'disk', 'washer', 'crossSection', 'average', 'accumulation',
+    'betweenIntersect', 'semicircle', 'rotateAroundLine', 'accumChain', 'volumeY',
+  ]);
 
   if (kind === 'between') {
     const choices = [
@@ -1076,6 +1658,7 @@ function makeAreaProblem() {
     ];
     const c = pick(choices);
     return {
+      difficulty: 5,
       kind: 'between',
       curves: c,
       prompt: `Find the area between $y=${c.top}$ and $y=${c.bot}$ on $[${c.a}, ${c.b}]$.`,
@@ -1096,6 +1679,7 @@ function makeAreaProblem() {
     ];
     const c = pick(choices);
     return {
+      difficulty: 5,
       kind: 'volume',
       flavor: 'disk',
       prompt: c.p,
@@ -1107,6 +1691,7 @@ function makeAreaProblem() {
 
   if (kind === 'washer') {
     return {
+      difficulty: 7,
       kind: 'volume',
       flavor: 'washer',
       prompt: `Rotate the region between $y=x$ and $y=x^2$ on $[0,1]$ about the $x$-axis. Volume?`,
@@ -1118,6 +1703,7 @@ function makeAreaProblem() {
 
   if (kind === 'crossSection') {
     return {
+      difficulty: 7,
       kind: 'volume',
       flavor: 'square',
       prompt: `Region: between $y=\\sqrt{x}$ and $y=0$ on $[0,4]$. Cross sections perpendicular to $x$-axis are squares. Find volume.`,
@@ -1138,6 +1724,7 @@ function makeAreaProblem() {
     ];
     const c = pick(choices);
     return {
+      difficulty: 5,
       kind: 'mc',
       prompt: `Average value:`,
       expr: c.p,
@@ -1147,14 +1734,82 @@ function makeAreaProblem() {
     };
   }
 
-  // accumulation
+  if (kind === 'accumulation') {
+    return {
+      difficulty: 5,
+      kind: 'mc',
+      prompt: `Accumulation function:`,
+      expr: `\\text{If } g(x) = \\displaystyle\\int_0^x (3t^2 + 1)\\,dt, \\text{ find } g'(x).`,
+      answer: '3x^2 + 1',
+      options: shuffle(['3x^2 + 1', 'x^3 + x', '6x', '3x^2 + 1 + C']),
+      explain: `FTC Part 1: $g'(x) = f(x)$ at the upper limit.`,
+    };
+  }
+
+  // ---------- HARD VARIANTS ----------
+
+  if (kind === 'betweenIntersect') {
+    return {
+      difficulty: 7,
+      kind: 'between',
+      curves: { f: x => 2 * x, g: x => x * x, a: 0, b: 2, top: '2x', bot: 'x^2' },
+      prompt: `The curves $y = 2x$ and $y = x^2$ intersect at $x=0$ and $x=2$. Find the area enclosed.`,
+      answer: '\\dfrac{4}{3}',
+      options: shuffle(['\\dfrac{4}{3}', '\\dfrac{8}{3}', '4', '\\dfrac{2}{3}']),
+      explain: `$\\int_0^2 (2x - x^2)\\,dx = \\left[x^2 - \\tfrac{x^3}{3}\\right]_0^2 = 4 - \\tfrac{8}{3} = \\tfrac{4}{3}$.`,
+    };
+  }
+
+  if (kind === 'semicircle') {
+    return {
+      difficulty: 8,
+      kind: 'volume',
+      flavor: 'semicircle',
+      prompt: `Base: region between $y=\\sqrt{x}$ and $y=0$ on $[0, 4]$. Cross sections perpendicular to the $x$-axis are semicircles with diameter in the base. Volume?`,
+      answer: '\\pi',
+      options: shuffle(['\\pi', '2\\pi', '\\dfrac{\\pi}{2}', '4\\pi']),
+      explain: `Diameter $= \\sqrt{x}$, radius $= \\sqrt{x}/2$. Area $= \\tfrac{\\pi}{2}\\cdot(\\sqrt{x}/2)^2 = \\tfrac{\\pi x}{8}$. $V = \\int_0^4 \\tfrac{\\pi x}{8}\\,dx = \\tfrac{\\pi}{8}\\cdot 8 = \\pi$.`,
+    };
+  }
+
+  if (kind === 'rotateAroundLine') {
+    return {
+      difficulty: 8,
+      kind: 'volume',
+      flavor: 'washer',
+      prompt: `Rotate the region under $y = x^2$ on $[0, 2]$ around the line $y = -1$. Volume?`,
+      answer: '\\dfrac{32\\pi}{5} + \\dfrac{32\\pi}{3}',
+      options: shuffle([
+        '\\dfrac{32\\pi}{5} + \\dfrac{32\\pi}{3}',
+        '\\dfrac{32\\pi}{5}',
+        '\\dfrac{32\\pi}{3}',
+        '\\dfrac{64\\pi}{5}',
+      ]),
+      explain: `Outer radius $R = x^2 + 1$, inner $r = 1$. $V = \\pi\\int_0^2 ((x^2+1)^2 - 1)\\,dx = \\pi\\int_0^2 (x^4 + 2x^2)\\,dx = \\pi\\left(\\tfrac{32}{5}+\\tfrac{16}{3}\\right)$.`,
+    };
+  }
+
+  if (kind === 'accumChain') {
+    return {
+      difficulty: 8,
+      kind: 'mc',
+      prompt: `FTC with the chain rule:`,
+      expr: `\\text{If } F(x) = \\displaystyle\\int_0^{x^2} \\cos t\\,dt, \\text{ find } F'(x).`,
+      answer: '2x\\cos(x^2)',
+      options: shuffle(['2x\\cos(x^2)', '\\cos(x^2)', '\\sin(x^2)', '2\\cos x']),
+      explain: `FTC1 + chain: $F'(x) = \\cos(x^2) \\cdot \\dfrac{d}{dx}(x^2) = 2x\\cos(x^2)$.`,
+    };
+  }
+
+  // volumeY: integrate with respect to y
   return {
-    kind: 'mc',
-    prompt: `Accumulation function:`,
-    expr: `\\text{If } g(x) = \\displaystyle\\int_0^x (3t^2 + 1)\\,dt, \\text{ find } g'(x).`,
-    answer: '3x^2 + 1',
-    options: shuffle(['3x^2 + 1', 'x^3 + x', '6x', '3x^2 + 1 + C']),
-    explain: `FTC Part 1: $g'(x) = f(x)$ at the upper limit.`,
+    difficulty: 7,
+    kind: 'volume',
+    flavor: 'disk',
+    prompt: `Rotate the region bounded by $x = y^2$, $x=0$, $y=2$ about the $y$-axis. Volume?`,
+    answer: '\\dfrac{32\\pi}{5}',
+    options: shuffle(['\\dfrac{32\\pi}{5}', '8\\pi', '\\dfrac{16\\pi}{5}', '\\dfrac{8\\pi}{3}']),
+    explain: `$V = \\pi\\int_0^2 (y^2)^2\\,dy = \\pi\\int_0^2 y^4\\,dy = \\dfrac{32\\pi}{5}$.`,
   };
 }
 
@@ -1162,12 +1817,16 @@ function makeAreaProblem() {
 //  FTC FORTRESS — Boss Battle
 // ============================================================
 function makeFTCProblem() {
-  const kind = pick(['defint', 'derivint', 'netchange', 'avgValue', 'ftcMix']);
+  const kind = pick([
+    'defint', 'derivint', 'netchange', 'avgValue', 'ftcMix',
+    'derivintChain', 'displacement', 'composite', 'mvtIntegral', 'avgVsValue', 'reversedBounds',
+  ]);
 
   if (kind === 'defint') {
     const a = pick([1, 2, 3]), b = a + pick([1, 2, 3]);
     const ans = b * b - a * a;
     return {
+      difficulty: 4,
       expr: `\\int_{${a}}^{${b}} 2x\\,dx`,
       answer: fmt(ans),
       options: distractors(ans),
@@ -1183,6 +1842,7 @@ function makeFTCProblem() {
       { e: 'e^{t^2}',    a: 'e^{x^2}',    d: ['2xe^{x^2}', '\\dfrac{e^{x^2}}{x}', '2x'] },
     ]);
     return {
+      difficulty: 5,
       expr: `\\dfrac{d}{dx}\\!\\left[\\displaystyle\\int_0^x ${f.e}\\,dt\\right]`,
       answer: f.a,
       options: shuffle([f.a, ...f.d]),
@@ -1198,6 +1858,7 @@ function makeFTCProblem() {
       { desc: `\\text{rate } r(t) = 6 + 2t \\text{ from } t=0 \\text{ to } t=3`, a: '27', opts: ['27', '24', '18', '30'], why: `$\\int_0^3 (6+2t)\\,dt = 18 + 9 = 27$.` },
     ]);
     return {
+      difficulty: 5,
       expr: `\\text{Net change: } ${v.desc}`,
       answer: v.a,
       options: shuffle(v.opts),
@@ -1208,6 +1869,7 @@ function makeFTCProblem() {
 
   if (kind === 'avgValue') {
     return {
+      difficulty: 5,
       expr: `\\text{Average value of } f(x) = 4 - x^2 \\text{ on } [0, 2]`,
       answer: '\\dfrac{8}{3}',
       options: shuffle(['\\dfrac{8}{3}', '\\dfrac{4}{3}', '2', '4']),
@@ -1216,13 +1878,82 @@ function makeFTCProblem() {
     };
   }
 
-  // ftcMix: combine concepts
+  if (kind === 'ftcMix') {
+    return {
+      difficulty: 5,
+      expr: `\\text{If } \\displaystyle\\int_0^4 f(x)\\,dx = 10 \\text{ and } \\displaystyle\\int_0^2 f(x)\\,dx = 3, \\text{ find } \\displaystyle\\int_2^4 f(x)\\,dx.`,
+      answer: '7',
+      options: shuffle(['7', '13', '-7', '5']),
+      explain: `Splitting: $\\int_0^4 = \\int_0^2 + \\int_2^4 \\Rightarrow \\int_2^4 = 10 - 3 = 7$.`,
+      dmg: 25,
+    };
+  }
+
+  // ---------- HARD VARIANTS (boss attacks) ----------
+
+  if (kind === 'derivintChain') {
+    return {
+      difficulty: 8,
+      expr: `\\dfrac{d}{dx}\\!\\left[\\displaystyle\\int_0^{x^2} \\cos(t)\\,dt\\right]`,
+      answer: '2x\\cos(x^2)',
+      options: shuffle(['2x\\cos(x^2)', '\\cos(x^2)', '-\\sin(x^2)', '2\\cos x']),
+      explain: `FTC1 + chain: $\\cos(x^2) \\cdot \\dfrac{d}{dx}(x^2) = 2x\\cos(x^2)$.`,
+      dmg: 35,
+    };
+  }
+
+  if (kind === 'displacement') {
+    return {
+      difficulty: 8,
+      expr: `\\text{A particle has velocity } v(t) = t^2 - 4 \\text{ for } t \\in [0, 3]. \\text{ Find the } \\textbf{total distance} \\text{ traveled.}`,
+      answer: '\\dfrac{23}{3}',
+      options: shuffle(['\\dfrac{23}{3}', '3', '-3', '\\dfrac{5}{3}']),
+      explain: `Distance $= \\int_0^3 |v|\\,dt$. $v=0$ at $t=2$. $\\int_0^2 (4-t^2)\\,dt + \\int_2^3 (t^2-4)\\,dt = \\tfrac{16}{3} + \\tfrac{7}{3} = \\tfrac{23}{3}$.`,
+      dmg: 35,
+    };
+  }
+
+  if (kind === 'composite') {
+    return {
+      difficulty: 7,
+      expr: `\\text{Given } \\displaystyle\\int_1^5 f(x)\\,dx = 12, \\ \\int_1^3 f(x)\\,dx = 5, \\text{ find } \\displaystyle\\int_3^5 (2f(x) + 1)\\,dx.`,
+      answer: '16',
+      options: shuffle(['16', '14', '12', '24']),
+      explain: `$\\int_3^5 f = 12 - 5 = 7$. Then $\\int_3^5 (2f+1) = 14 + 2 = 16$.`,
+      dmg: 32,
+    };
+  }
+
+  if (kind === 'mvtIntegral') {
+    return {
+      difficulty: 7,
+      expr: `\\text{Find } c \\in (0, 3) \\text{ where } f(c) = \\dfrac{1}{3}\\int_0^3 x^2\\,dx, \\text{ with } f(x) = x^2.`,
+      answer: '\\sqrt{3}',
+      options: shuffle(['\\sqrt{3}', '3', '\\dfrac{3}{2}', '1']),
+      explain: `Average value $= 3$. Solve $c^2 = 3 \\Rightarrow c = \\sqrt{3}$ (in $(0, 3)$).`,
+      dmg: 30,
+    };
+  }
+
+  if (kind === 'avgVsValue') {
+    return {
+      difficulty: 7,
+      expr: `\\text{Average value of } e^x \\text{ on } [0, \\ln 4].`,
+      answer: '\\dfrac{3}{\\ln 4}',
+      options: shuffle(['\\dfrac{3}{\\ln 4}', '\\dfrac{4}{\\ln 4}', '\\ln 4', '\\dfrac{e^{\\ln 4}}{2}']),
+      explain: `$\\dfrac{1}{\\ln 4}\\int_0^{\\ln 4} e^x\\,dx = \\dfrac{1}{\\ln 4}(4 - 1) = \\dfrac{3}{\\ln 4}$.`,
+      dmg: 32,
+    };
+  }
+
+  // reversedBounds
   return {
-    expr: `\\text{If } \\displaystyle\\int_0^4 f(x)\\,dx = 10 \\text{ and } \\displaystyle\\int_0^2 f(x)\\,dx = 3, \\text{ find } \\displaystyle\\int_2^4 f(x)\\,dx.`,
-    answer: '7',
-    options: shuffle(['7', '13', '-7', '5']),
-    explain: `Splitting: $\\int_0^4 = \\int_0^2 + \\int_2^4 \\Rightarrow \\int_2^4 = 10 - 3 = 7$.`,
-    dmg: 25,
+    difficulty: 6,
+    expr: `\\text{If } \\displaystyle\\int_2^5 f(x)\\,dx = 8, \\text{ what is } \\displaystyle\\int_5^2 3f(x)\\,dx?`,
+    answer: '-24',
+    options: shuffle(['-24', '24', '-8', '8']),
+    explain: `Swap bounds → negate: $-8$. Multiply by 3: $-24$.`,
+    dmg: 28,
   };
 }
 
