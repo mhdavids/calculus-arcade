@@ -256,20 +256,31 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 const shuffle = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(p => p[1]);
 function randomPraise() { return pick(['NICE!', 'GREAT WORK!', 'YOU GOT IT!', '+1 MASTERY!', 'SHARP!', 'PERFECT!']); }
 
-function renderMath(root) {
-  if (typeof window === 'undefined' || !window.renderMathInElement) return;
-  try {
-    window.renderMathInElement(root, {
-      delimiters: [
-        { left: '$$', right: '$$', display: true },
-        { left: '$',  right: '$',  display: false },
-        { left: '\\(', right: '\\)', display: false },
-        { left: '\\[', right: '\\]', display: true },
-      ],
-      throwOnError: false,
-      strict: 'ignore',
-    });
-  } catch {}
+function renderMath(root, attemptsLeft = 30) {
+  if (typeof window === 'undefined') return;
+  if (window.renderMathInElement) {
+    try {
+      window.renderMathInElement(root, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$',  right: '$',  display: false },
+          { left: '\\(', right: '\\)', display: false },
+          { left: '\\[', right: '\\]', display: true },
+        ],
+        throwOnError: false,
+        strict: 'ignore',
+      });
+    } catch (e) {
+      console.warn('[calc-arcade] KaTeX render error:', e);
+    }
+    return;
+  }
+  // Auto-render hasn't loaded yet — retry up to ~3s in case of a slow CDN/font load.
+  if (attemptsLeft > 0 && root && root.isConnected !== false) {
+    setTimeout(() => renderMath(root, attemptsLeft - 1), 100);
+  } else if (attemptsLeft === 0) {
+    console.warn('[calc-arcade] KaTeX auto-render never loaded; math will display as raw LaTeX.');
+  }
 }
 
 function fmt(n) {
