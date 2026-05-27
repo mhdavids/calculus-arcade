@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CALCULUS ARCADE</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="crt-overlay"></div>
+<div class="scanlines"></div>
+
+<!-- TITLE SCREEN -->
+<section id="screen-title" class="screen active">
+  <div class="starfield"></div>
+  <div class="title-content">
+    <h1 class="neon-title">
+      <span class="glow-pink">CALCULUS</span>
+      <span class="glow-cyan">ARCADE</span>
+    </h1>
+    <p class="subtitle">~ MASTER THE LIMIT ~</p>
+    <div class="cabinet-row" aria-hidden="true">
+      <div class="mini-cab cab-pink"></div>
+      <div class="mini-cab cab-cyan"></div>
+      <div class="mini-cab cab-yellow"></div>
+      <div class="mini-cab cab-green"></div>
+      <div class="mini-cab cab-purple"></div>
+      <div class="mini-cab cab-orange"></div>
+    </div>
+    <button id="btn-insert-coin" class="blink-button">▶ INSERT COIN TO PLAY ◀</button>
+    <p class="footer-text">© 1986 NEWTON-LEIBNIZ ENTERTAINMENT CO.</p>
+    <p class="footer-tiny">AP CALCULUS AB CERTIFIED · 6 GAMES · WIN TO ESCAPE</p>
+  </div>
+</section>
+
+<!-- ENTRANCE CUTSCENE -->
+<section id="screen-entrance" class="screen">
+  <div class="entrance-scene">
+    <div class="arcade-door-frame">
+      <div class="arcade-door left"></div>
+      <div class="arcade-door right"></div>
+      <div class="door-sign">CALCULUS ARCADE · ENTER</div>
+    </div>
+    <div class="entrance-overlay">
+      <p class="entrance-text">PUSHING OPEN THE DOORS...</p>
+    </div>
+  </div>
+</section>
+
+<!-- ARCADE LOBBY -->
+<section id="screen-lobby" class="screen">
+  <div class="lobby">
+    <header class="lobby-header">
+      <div class="lobby-title">
+        <span class="glow-cyan">▮▮</span>
+        <span class="glow-pink"> THE ARCADE FLOOR </span>
+        <span class="glow-cyan">▮▮</span>
+      </div>
+      <div class="lobby-stats">
+        <span id="mastery-overall">MASTERY 0%</span>
+        <span id="games-cleared">CLEARED 0 / 6</span>
+        <button id="btn-stats" class="link-btn">[ STATS ]</button>
+      </div>
+    </header>
+
+    <p class="lobby-intro">PICK A CABINET. PROVE MASTERY (≥ 80%) TO LIGHT IT UP.<br>
+      LIGHT ALL SIX TO ESCAPE THE ARCADE.</p>
+
+    <div class="cabinets-grid" id="cabinets-grid">
+      <!-- Cabinets injected by JS -->
+    </div>
+
+    <p class="lobby-hint">TIP: EACH GAME GIVES YOU 10 PROBLEMS. SCORE 8+ TO MASTER.</p>
+  </div>
+</section>
+
+<!-- GAME SCREEN (universal frame) -->
+<section id="screen-game" class="screen">
+  <div class="game-frame">
+    <header class="game-header">
+      <button id="btn-back-lobby" class="link-btn">◀ EXIT CABINET</button>
+      <div class="game-title-bar">
+        <span id="game-title">GAME TITLE</span>
+      </div>
+      <div class="game-hud">
+        <span id="hud-round">ROUND 1/10</span>
+        <span id="hud-score">SCORE 0</span>
+        <span id="hud-lives">♥♥♥</span>
+      </div>
+    </header>
+    <div id="game-stage" class="game-stage">
+      <!-- Each game injects its content here -->
+    </div>
+    <footer class="game-footer">
+      <div id="game-message" class="game-message"></div>
+    </footer>
+  </div>
+</section>
+
+<!-- STATS SCREEN -->
+<section id="screen-stats" class="screen">
+  <div class="stats-wrap">
+    <h2 class="neon-title small">
+      <span class="glow-pink">PLAYER</span> <span class="glow-cyan">STATS</span>
+    </h2>
+    <div id="stats-list" class="stats-list"></div>
+    <button id="btn-stats-back" class="primary-btn">◀ BACK TO LOBBY</button>
+    <button id="btn-stats-reset" class="ghost-btn">RESET PROGRESS</button>
+  </div>
+</section>
+
+<!-- VICTORY SCREEN -->
+<section id="screen-victory" class="screen">
+  <div class="victory-wrap">
+    <div class="confetti"></div>
+    <h2 class="neon-title big">
+      <span class="glow-yellow">ARCADE</span><br>
+      <span class="glow-pink">CLEARED</span>
+    </h2>
+    <p class="victory-line">YOU PROVED MASTERY OF AP CALCULUS AB.</p>
+    <p class="victory-line dim">THE NEON SIGNS DIM. THE DOORS UNLOCK.</p>
+    <p class="victory-line dim">SOMEWHERE, ISAAC NEWTON NODS WITH APPROVAL.</p>
+    <div class="trophy-row">
+      <div class="trophy">🏆</div>
+      <div class="trophy big-trophy">🏆</div>
+      <div class="trophy">🏆</div>
+    </div>
+    <button id="btn-victory-back" class="primary-btn">◀ EXPLORE THE ARCADE</button>
+  </div>
+</section>
+
+<script src="script.js"></script>
+</body>
+</html>
