@@ -359,6 +359,7 @@ function makeLimitProblem() {
   const kind = pick([
     'poly', 'factor', 'piecewise', 'trig', 'atInf', 'continuity', 'ivt', 'squeeze',
     'conjugate', 'lhopitalExp', 'trigComplex', 'radInf', 'piecewiseParam', 'lhopitalIter',
+    'oneSided', 'composition', 'expDecay', 'discontinuity', 'absLimit',
   ]);
 
   if (kind === 'poly') {
@@ -542,17 +543,66 @@ function makeLimitProblem() {
     };
   }
 
-  // piecewiseParam: find k so the limit exists at the split point
-  // f(x) = { x² + k, x < 1 ; 3x - 2, x ≥ 1 }. For continuity, 1 + k = 1 → k = 0.
-  const k = pick([0, 1, 2]);
-  const split = 1;
-  const correctK = (3 * split - 2) - (split * split);
+  if (kind === 'piecewiseParam') {
+    const correctK = 0; // x² + k vs 3x - 2 at x = 1: 1 + k = 1 → k = 0
+    return {
+      difficulty: 6,
+      expr: `\\text{Find } k \\text{ so } \\lim_{x \\to 1} f(x) \\text{ exists, where } f(x)=\\begin{cases}x^2 + k & x<1\\\\ 3x - 2 & x\\geq 1\\end{cases}`,
+      answer: fmt(correctK),
+      options: shuffle([fmt(correctK), '1', '-1', '2']),
+      explain: `Match the two pieces at $x=1$: $1 + k = 1 \\Rightarrow k = 0$.`,
+    };
+  }
+
+  if (kind === 'oneSided') {
+    return {
+      difficulty: 5,
+      expr: `\\lim_{x \\to 0}\\,\\dfrac{|x|}{x}`,
+      answer: '\\text{DNE}',
+      options: shuffle(['\\text{DNE}', '1', '-1', '0']),
+      explain: `Left: $|x|/x = -1$. Right: $|x|/x = 1$. Two-sided limit DNE.`,
+    };
+  }
+
+  if (kind === 'composition') {
+    const a = pick([1, 2, 4]);
+    const ans = a === 1 ? '\\dfrac{\\sqrt{2}}{2}' : a === 2 ? '1' : '0';
+    return {
+      difficulty: 4,
+      expr: `\\lim_{x \\to ${a}}\\,\\sin\\!\\left(\\dfrac{\\pi x}{4}\\right)`,
+      answer: ans,
+      options: shuffle([ans, '0', '1', '\\dfrac{\\sqrt{3}}{2}']),
+      explain: `Plug in directly: $\\sin(\\pi \\cdot ${a}/4)$.`,
+    };
+  }
+
+  if (kind === 'expDecay') {
+    return {
+      difficulty: 3,
+      expr: `\\lim_{x \\to \\infty}\\,e^{-x}`,
+      answer: '0',
+      options: shuffle(['0', '1', 'e', '\\infty']),
+      explain: `$e^{-x} = 1/e^x \\to 0$ as $x \\to \\infty$.`,
+    };
+  }
+
+  if (kind === 'discontinuity') {
+    return {
+      difficulty: 6,
+      expr: `\\text{Classify the discontinuity of } f(x) = \\dfrac{x^2 - 1}{x - 1} \\text{ at } x = 1.`,
+      answer: '\\text{Removable}',
+      options: shuffle(['\\text{Removable}', '\\text{Jump}', '\\text{Infinite}', '\\text{None}']),
+      explain: `The hole at $x=1$ can be patched by setting $f(1) = 2$ — that's a removable (point) discontinuity.`,
+    };
+  }
+
+  // absLimit: limit with abs value at a point where the function isn't defined cleanly
   return {
-    difficulty: 6,
-    expr: `\\text{Find } k \\text{ so } \\lim_{x \\to ${split}} f(x) \\text{ exists, where } f(x)=\\begin{cases}x^2 + k & x<${split}\\\\ 3x - 2 & x\\geq ${split}\\end{cases}`,
-    answer: fmt(correctK),
-    options: shuffle([fmt(correctK), fmt(correctK + 1), fmt(correctK - 1), fmt(2)]),
-    explain: `Match the two pieces at $x=${split}$: $1 + k = 1 \\Rightarrow k = ${correctK}$.`,
+    difficulty: 5,
+    expr: `\\lim_{x \\to 3^+}\\,\\dfrac{x - 3}{|x - 3|}`,
+    answer: '1',
+    options: shuffle(['1', '-1', '0', '\\text{DNE}']),
+    explain: `For $x > 3$, $|x-3| = x-3$, so the ratio is $1$.`,
   };
 }
 
@@ -563,6 +613,7 @@ function makeDerivProblem() {
   const kind = pick([
     'power', 'sum', 'product', 'quotient', 'trig', 'exp', 'log', 'definition',
     'productChain', 'quotientChain', 'higherOrder', 'atPoint', 'tangent', 'logChain',
+    'normalLine', 'differentiability', 'rolle', 'velocityAccel', 'paramSlope',
   ]);
 
   if (kind === 'power') {
@@ -728,18 +779,73 @@ function makeDerivProblem() {
     };
   }
 
-  // logChain: derivative of ln(g(x)) using chain rule
+  if (kind === 'logChain') {
+    return {
+      difficulty: 6,
+      expr: `\\dfrac{d}{dx}\\!\\left[\\ln(x^2 + 1)\\right]`,
+      answer: '\\dfrac{2x}{x^2 + 1}',
+      options: shuffle([
+        '\\dfrac{2x}{x^2 + 1}',
+        '\\dfrac{1}{x^2 + 1}',
+        '\\dfrac{2x}{\\ln(x^2 + 1)}',
+        '\\ln(2x)',
+      ]),
+      explain: `$\\dfrac{d}{dx}\\ln(g) = \\dfrac{g'(x)}{g(x)} = \\dfrac{2x}{x^2+1}$.`,
+    };
+  }
+
+  if (kind === 'normalLine') {
+    return {
+      difficulty: 6,
+      expr: `\\text{Equation of the normal line to } y = x^2 + 1 \\text{ at } x = 1.`,
+      answer: 'y = -\\tfrac{1}{2}x + \\tfrac{5}{2}',
+      options: shuffle([
+        'y = -\\tfrac{1}{2}x + \\tfrac{5}{2}',
+        'y = 2x',
+        'y = -2x + 4',
+        'y = \\tfrac{1}{2}x + 2',
+      ]),
+      explain: `$y(1)=2$, slope of tangent = $2$, so normal slope = $-\\tfrac{1}{2}$. $y - 2 = -\\tfrac{1}{2}(x-1)$.`,
+    };
+  }
+
+  if (kind === 'differentiability') {
+    return {
+      difficulty: 6,
+      expr: `\\text{Where is } f(x) = |x - 2| \\text{ NOT differentiable?}`,
+      answer: 'x = 2',
+      options: shuffle(['x = 2', 'x = 0', '\\text{Everywhere differentiable}', 'x = -2']),
+      explain: `Absolute-value functions have a corner at the inside-zero — left slope $-1$, right slope $+1$ at $x=2$.`,
+    };
+  }
+
+  if (kind === 'rolle') {
+    return {
+      difficulty: 7,
+      expr: `\\text{Rolle's Theorem applied to } f(x) = x^2 - 4x \\text{ on } [0, 4]. \\text{ Find } c \\in (0, 4) \\text{ with } f'(c) = 0.`,
+      answer: 'c = 2',
+      options: shuffle(['c = 2', 'c = 0', 'c = 4', 'c = 1']),
+      explain: `$f(0) = f(4) = 0$, so Rolle applies. $f'(c) = 2c - 4 = 0 \\Rightarrow c = 2$.`,
+    };
+  }
+
+  if (kind === 'velocityAccel') {
+    return {
+      difficulty: 5,
+      expr: `\\text{If } s(t) = t^3 - 2t^2 + 5, \\text{ find the acceleration at } t = 2.`,
+      answer: '8',
+      options: shuffle(['8', '4', '12', '0']),
+      explain: `$v(t) = 3t^2 - 4t$, $a(t) = 6t - 4$. $a(2) = 12 - 4 = 8$.`,
+    };
+  }
+
+  // paramSlope: for f(x) = ax² + bx, find a so f'(1) = 5 (or similar)
   return {
-    difficulty: 6,
-    expr: `\\dfrac{d}{dx}\\!\\left[\\ln(x^2 + 1)\\right]`,
-    answer: '\\dfrac{2x}{x^2 + 1}',
-    options: shuffle([
-      '\\dfrac{2x}{x^2 + 1}',
-      '\\dfrac{1}{x^2 + 1}',
-      '\\dfrac{2x}{\\ln(x^2 + 1)}',
-      '\\ln(2x)',
-    ]),
-    explain: `$\\dfrac{d}{dx}\\ln(g) = \\dfrac{g'(x)}{g(x)} = \\dfrac{2x}{x^2+1}$.`,
+    difficulty: 5,
+    expr: `\\text{If } f(x) = ax^2 + 3x \\text{ and } f'(1) = 7, \\text{ find } a.`,
+    answer: '2',
+    options: shuffle(['2', '4', '\\tfrac{1}{2}', '1']),
+    explain: `$f'(x) = 2ax + 3$. $f'(1) = 2a + 3 = 7 \\Rightarrow a = 2$.`,
   };
 }
 
@@ -750,6 +856,7 @@ function makeChainProblem() {
   const kind = pick([
     'chainTrig', 'chainExp', 'chainPow', 'implicit', 'inverseTrig', 'inverseFn',
     'doubleChain', 'implicitPoint', 'logDiff', 'inverseTrigChain', 'tripleChain',
+    'chainQuotient', 'implicitProduct', 'inverseTrigEval', 'sqrtChain',
   ]);
 
   if (kind === 'chainTrig') {
@@ -936,7 +1043,67 @@ function makeChainProblem() {
     };
   }
 
-  // Fallback (shouldn't hit, but safe)
+  if (kind === 'chainQuotient') {
+    return {
+      difficulty: 7,
+      expr: `\\dfrac{d}{dx}\\!\\left[\\dfrac{1}{(x^2 + 1)^3}\\right]`,
+      answer: '\\dfrac{-6x}{(x^2 + 1)^4}',
+      options: shuffle([
+        '\\dfrac{-6x}{(x^2 + 1)^4}',
+        '\\dfrac{6x}{(x^2 + 1)^4}',
+        '\\dfrac{-3}{(x^2 + 1)^2}',
+        '\\dfrac{-1}{3(x^2+1)^4}',
+      ]),
+      explain: `Rewrite as $(x^2+1)^{-3}$. Then $-3(x^2+1)^{-4} \\cdot 2x = -6x/(x^2+1)^4$.`,
+    };
+  }
+
+  if (kind === 'implicitProduct') {
+    return {
+      difficulty: 7,
+      expr: `\\text{For } xy + y^2 = 6, \\text{ find } \\dfrac{dy}{dx}.`,
+      answer: '\\dfrac{-y}{x + 2y}',
+      options: shuffle([
+        '\\dfrac{-y}{x + 2y}',
+        '\\dfrac{y}{x + 2y}',
+        '\\dfrac{-x}{y + 2}',
+        '\\dfrac{x}{2y}',
+      ]),
+      explain: `Implicit: $y + xy' + 2y\\,y' = 0 \\Rightarrow y'(x + 2y) = -y$.`,
+    };
+  }
+
+  if (kind === 'inverseTrigEval') {
+    return {
+      difficulty: 6,
+      expr: `\\text{If } y = \\arcsin x, \\text{ find } \\dfrac{dy}{dx} \\text{ at } x = \\tfrac{1}{2}.`,
+      answer: '\\dfrac{2}{\\sqrt{3}}',
+      options: shuffle([
+        '\\dfrac{2}{\\sqrt{3}}',
+        '\\dfrac{1}{\\sqrt{3}}',
+        '\\dfrac{2\\sqrt{3}}{3}',
+        '\\dfrac{1}{2}',
+      ]),
+      explain: `$y' = \\dfrac{1}{\\sqrt{1-x^2}} = \\dfrac{1}{\\sqrt{3/4}} = \\dfrac{2}{\\sqrt{3}}$. (Note option 1 and 3 are equal.)`,
+    };
+  }
+
+  if (kind === 'sqrtChain') {
+    return {
+      difficulty: 6,
+      expr: `\\dfrac{d}{dx}\\!\\left[\\sqrt{x^2 + 4}\\right]`,
+      answer: '\\dfrac{x}{\\sqrt{x^2 + 4}}',
+      options: shuffle([
+        '\\dfrac{x}{\\sqrt{x^2 + 4}}',
+        '\\dfrac{2x}{\\sqrt{x^2 + 4}}',
+        '\\dfrac{1}{2\\sqrt{x^2 + 4}}',
+        '\\dfrac{x}{2\\sqrt{x^2 + 4}}',
+      ]),
+      explain: `$(u^{1/2})' = \\tfrac{1}{2}u^{-1/2}\\cdot u' = \\tfrac{2x}{2\\sqrt{x^2+4}}$.`,
+    };
+  }
+
+  // Fallback
   return {
     difficulty: 5,
     expr: `\\dfrac{d}{dx}\\!\\left[(2x+1)^4\\right]`,
@@ -1126,6 +1293,48 @@ function rateRushBank() {
       options: ['-\\tfrac{1}{2}\\,\\text{rad/s}', '-\\tfrac{1}{4}\\,\\text{rad/s}', '-\\dfrac{1}{2\\sqrt{3}}\\,\\text{rad/s}', '-\\dfrac{\\sqrt{3}}{2}\\,\\text{rad/s}'],
       explain: `$\\sin\\theta = y/12$, so $\\cos\\theta\\cdot\\theta' = y'/12 = -1/4$. At $x=6$, $\\cos\\theta = 1/2$, so $\\theta' = -\\tfrac{1}{2}$.`,
     },
+
+    // ---- More: trough, drone, particle on curve, marginal
+    {
+      difficulty: 7,
+      scene: 'cone',
+      scenario: `Water fills a trough whose ends are isosceles triangles, $3\\,\\text{ft}$ across the top and $2\\,\\text{ft}$ deep, $10\\,\\text{ft}$ long. Water enters at $5\\,\\text{ft}^3/\\text{min}$. How fast is the depth rising when the water is $1\\,\\text{ft}$ deep?`,
+      answer: '\\dfrac{1}{3}\\,\\text{ft/min}',
+      options: ['\\dfrac{1}{3}\\,\\text{ft/min}', '\\dfrac{2}{3}\\,\\text{ft/min}', '\\dfrac{5}{3}\\,\\text{ft/min}', '\\dfrac{2}{15}\\,\\text{ft/min}'],
+      explain: `By similar triangles, water width at depth $h$ is $w = \\tfrac{3h}{2}$. Cross-section area $= \\tfrac{1}{2}wh = \\tfrac{3h^2}{4}$. $V = \\tfrac{15h^2}{2}$, so $\\dfrac{dV}{dt} = 15h\\,\\dfrac{dh}{dt}$. At $h=1$: $5 = 15\\,\\dfrac{dh}{dt} \\Rightarrow \\dfrac{dh}{dt} = \\tfrac{1}{3}$.`,
+    },
+    {
+      difficulty: 6,
+      scene: 'balloon',
+      scenario: `A drone climbs at $4\\,\\text{m/s}$ directly above a point on the ground. An observer is $30\\,\\text{m}$ away from that point. How fast is the line-of-sight distance changing when the drone is $40\\,\\text{m}$ high?`,
+      answer: '\\dfrac{32}{10}\\,\\text{m/s} = 3.2\\,\\text{m/s}',
+      options: ['\\dfrac{32}{10}\\,\\text{m/s} = 3.2\\,\\text{m/s}', '4\\,\\text{m/s}', '\\dfrac{40}{50}\\,\\text{m/s}', '2.4\\,\\text{m/s}'],
+      explain: `$D^2 = 30^2 + h^2$. $2D\\,D' = 2h\\,h'$. At $h=40$, $D=50$. $D' = (40 \\cdot 4)/50 = 3.2$.`,
+    },
+    {
+      difficulty: 7,
+      scene: 'ladder',
+      scenario: `A particle moves along $y = x^2$. Its $x$-coordinate increases at $3\\,\\text{units/s}$. How fast is the distance from the origin changing when $x = 2$?`,
+      answer: '\\dfrac{27}{\\sqrt{20}}\\,\\text{units/s}',
+      options: ['\\dfrac{27}{\\sqrt{20}}\\,\\text{units/s}', '6\\,\\text{units/s}', '\\dfrac{3}{\\sqrt{20}}', '12'],
+      explain: `$D^2 = x^2 + y^2 = x^2 + x^4$. $D\\,D' = (x + 2x^3)\\,x'$. At $x=2$: $D=\\sqrt{20}$, $D' = (2 + 16)\\cdot 3/\\sqrt{20} = 54/\\sqrt{20} = 27/\\sqrt{5}$.`,
+    },
+    {
+      difficulty: 5,
+      scene: 'cone',
+      scenario: `Cost $C(x) = 0.01x^2 + 50x + 1000$. Find the marginal cost at $x = 100$ units.`,
+      answer: '\\$52/\\text{unit}',
+      options: ['\\$52/\\text{unit}', '\\$50/\\text{unit}', '\\$100/\\text{unit}', '\\$2/\\text{unit}'],
+      explain: `$C'(x) = 0.02x + 50$. $C'(100) = 2 + 50 = 52$.`,
+    },
+    {
+      difficulty: 6,
+      scene: 'balloon',
+      scenario: `A coin is dropped from $400\\,\\text{ft}$: $s(t) = 400 - 16t^2$. With what speed does it hit the ground?`,
+      answer: '160\\,\\text{ft/s}',
+      options: ['160\\,\\text{ft/s}', '80\\,\\text{ft/s}', '40\\,\\text{ft/s}', '320\\,\\text{ft/s}'],
+      explain: `Hits ground when $s=0 \\Rightarrow t = 5$. $v(t)=-32t$, $|v(5)| = 160$.`,
+    },
   ];
 }
 
@@ -1311,6 +1520,43 @@ function optimMCBank() {
       options: ['c = 2', 'c = 1', 'c = \\tfrac{3}{2}', 'c = 0'],
       explain: `$\\dfrac{f(3)-f(0)}{3} = \\dfrac{2-2}{3} = 0$. Solve $3c^2 - 6c = 0 \\Rightarrow c=0$ or $2$; only $c=2$ is in $(0,3)$.`,
     },
+
+    // ---- MORE
+    {
+      difficulty: 7,
+      expr: `\\text{Profit } P(x) = -x^2 + 80x - 400. \\text{ How many units maximize profit?}`,
+      answer: 'x = 40',
+      options: ['x = 40', 'x = 80', 'x = 20', 'x = 400'],
+      explain: `$P'(x) = -2x + 80 = 0 \\Rightarrow x = 40$.`,
+    },
+    {
+      difficulty: 6,
+      expr: `\\text{On } [-1, 5], \\text{ what is the maximum of } f(x) = -x^2 + 4x + 1?`,
+      answer: '5',
+      options: ['5', '6', '4', '0'],
+      explain: `$f'(x) = -2x + 4 = 0 \\Rightarrow x=2$. $f(2) = -4+8+1 = 5$; endpoints give $-4$ and $-4$. Max is $5$.`,
+    },
+    {
+      difficulty: 6,
+      expr: `\\text{Identify } x \\text{ values where } f(x) = x^4 - 8x^2 + 16 \\text{ has horizontal tangents.}`,
+      answer: 'x = 0, \\pm 2',
+      options: ['x = 0, \\pm 2', 'x = \\pm 2 \\text{ only}', 'x = 0 \\text{ only}', 'x = \\pm 1'],
+      explain: `$f'(x) = 4x^3 - 16x = 4x(x^2 - 4) = 0 \\Rightarrow x = 0, \\pm 2$.`,
+    },
+    {
+      difficulty: 8,
+      expr: `\\text{Open-top cylinder with volume } 27\\pi. \\text{ What radius } r \\text{ minimizes surface area } S = \\pi r^2 + 2\\pi r h?`,
+      answer: 'r = 3',
+      options: ['r = 3', 'r = \\sqrt[3]{27}', 'r = \\sqrt{27}', 'r = \\dfrac{27}{2\\pi}'],
+      explain: `$h = 27/r^2$. $S(r) = \\pi r^2 + 54\\pi/r$. $S'(r) = 2\\pi r - 54\\pi/r^2 = 0 \\Rightarrow r^3 = 27 \\Rightarrow r = 3$. (Note: $\\sqrt[3]{27} = 3$, so options 1 and 2 are equal.)`,
+    },
+    {
+      difficulty: 7,
+      expr: `\\text{Two positive numbers sum to } 20. \\text{ What is the maximum of their product?}`,
+      answer: '100',
+      options: ['100', '200', '20', '400'],
+      explain: `$P = x(20-x) = 20x - x^2$, $P' = 20 - 2x = 0 \\Rightarrow x=10$. $P_{\\max} = 100$.`,
+    },
   ];
 }
 
@@ -1321,6 +1567,7 @@ function makeIntegProblem() {
   const kind = pick([
     'power', 'trig', 'exp', 'recip', 'usub', 'riemann',
     'usubTrig', 'usubDefinite', 'integProperty', 'riemannLimit', 'usubChain', 'definiteEval',
+    'logUsub', 'absInteg', 'kxPower', 'arcSetup',
   ]);
 
   if (kind === 'power') {
@@ -1464,13 +1711,68 @@ function makeIntegProblem() {
     };
   }
 
-  // definiteEval
+  if (kind === 'definiteEval') {
+    return {
+      difficulty: 5,
+      expr: `\\int_0^{\\pi} \\sin x\\,dx`,
+      answer: '2',
+      options: shuffle(['2', '0', '1', '\\pi']),
+      explain: `$[-\\cos x]_0^{\\pi} = -(-1) - (-(1)) = 2$.`,
+    };
+  }
+
+  if (kind === 'logUsub') {
+    return {
+      difficulty: 6,
+      expr: `\\int \\dfrac{x}{x^2 + 1}\\,dx`,
+      answer: '\\tfrac{1}{2}\\ln(x^2 + 1) + C',
+      options: shuffle([
+        '\\tfrac{1}{2}\\ln(x^2 + 1) + C',
+        '\\ln(x^2 + 1) + C',
+        '\\arctan x + C',
+        '\\dfrac{x^2}{2(x^2+1)} + C',
+      ]),
+      explain: `Let $u = x^2 + 1$, $du = 2x\\,dx$. $\\int \\tfrac{1}{2u}\\,du = \\tfrac{1}{2}\\ln|u|+C$.`,
+    };
+  }
+
+  if (kind === 'absInteg') {
+    return {
+      difficulty: 7,
+      expr: `\\int_{-2}^{3} |x|\\,dx`,
+      answer: '\\dfrac{13}{2}',
+      options: shuffle(['\\dfrac{13}{2}', '\\dfrac{5}{2}', '5', '\\dfrac{9}{2}']),
+      explain: `Split: $\\int_{-2}^{0}(-x)\\,dx + \\int_0^3 x\\,dx = 2 + \\tfrac{9}{2} = \\tfrac{13}{2}$.`,
+    };
+  }
+
+  if (kind === 'kxPower') {
+    const k = pick([2, 3, 4]);
+    return {
+      difficulty: 4,
+      expr: `\\int ${k}x\\,dx`,
+      answer: `\\dfrac{${k}x^2}{2} + C`,
+      options: shuffle([
+        `\\dfrac{${k}x^2}{2} + C`,
+        `${k}x^2 + C`,
+        `\\dfrac{x^2}{2} + C`,
+        `${k} + C`,
+      ]),
+      explain: `Constant pulls out: $${k}\\cdot \\tfrac{x^2}{2} = \\tfrac{${k}x^2}{2}+C$.`,
+    };
+  }
+
+  // arcSetup: recognize arctan/arcsin form
+  const choice = pick([
+    { e: `\\int \\dfrac{1}{1 + x^2}\\,dx`, a: '\\arctan x + C', d: ['\\arcsin x + C', '\\ln(1+x^2)+C', '\\dfrac{1}{2}\\arctan x + C'], why: `Direct: derivative of $\\arctan x$ is $\\tfrac{1}{1+x^2}$.` },
+    { e: `\\int \\dfrac{1}{\\sqrt{1 - x^2}}\\,dx`, a: '\\arcsin x + C', d: ['\\arctan x + C', '\\arccos x + C', '-\\arcsin x + C'], why: `Derivative of $\\arcsin x$ is $\\tfrac{1}{\\sqrt{1-x^2}}$.` },
+  ]);
   return {
-    difficulty: 5,
-    expr: `\\int_0^{\\pi} \\sin x\\,dx`,
-    answer: '2',
-    options: shuffle(['2', '0', '1', '\\pi']),
-    explain: `$[-\\cos x]_0^{\\pi} = -(-1) - (-(1)) = 2$.`,
+    difficulty: 6,
+    expr: choice.e,
+    answer: choice.a,
+    options: shuffle([choice.a, ...choice.d]),
+    explain: choice.why,
   };
 }
 
@@ -1481,6 +1783,7 @@ function makeSlopeProblem() {
   const kind = pick([
     'matchField', 'separable', 'expGrowth', 'ivp', 'identifyField',
     'separableHard', 'cooling', 'expContinuous', 'separableEval',
+    'logistic', 'tangentAtIC', 'halfLifeFormula',
   ]);
 
   if (kind === 'matchField') {
@@ -1626,15 +1929,61 @@ function makeSlopeProblem() {
     };
   }
 
-  // separableEval: solve and evaluate at a point
+  if (kind === 'separableEval') {
+    return {
+      difficulty: 7,
+      kind: 'mc',
+      prompt: `Evaluate the solution:`,
+      expr: `\\text{If } \\dfrac{dy}{dx} = -2xy \\text{ and } y(0)=3, \\text{ find } y(1).`,
+      answer: '3e^{-1}',
+      options: shuffle(['3e^{-1}', '3e', '3 - e', '\\dfrac{3}{e^2}']),
+      explain: `Separable: $\\dfrac{dy}{y} = -2x\\,dx \\Rightarrow \\ln|y| = -x^2 + C \\Rightarrow y = 3e^{-x^2}$. $y(1) = 3e^{-1}$.`,
+    };
+  }
+
+  if (kind === 'logistic') {
+    return {
+      difficulty: 8,
+      kind: 'mc',
+      prompt: `Logistic growth:`,
+      expr: `\\text{For } \\dfrac{dP}{dt} = 0.05P\\!\\left(1 - \\dfrac{P}{1000}\\right), \\text{ what is the carrying capacity and the population growing fastest?}`,
+      answer: 'L = 1000; \\text{ fastest at } P = 500',
+      options: shuffle([
+        'L = 1000; \\text{ fastest at } P = 500',
+        'L = 500; \\text{ fastest at } P = 250',
+        'L = 1000; \\text{ fastest at } P = 1000',
+        'L = 0.05; \\text{ fastest at } P = 1000',
+      ]),
+      explain: `Carrying capacity $L$ is the value where $dP/dt = 0$ (besides 0): $L = 1000$. Logistic growth is fastest at $L/2 = 500$.`,
+    };
+  }
+
+  if (kind === 'tangentAtIC') {
+    return {
+      difficulty: 6,
+      kind: 'mc',
+      prompt: `Tangent line at the initial condition:`,
+      expr: `\\text{If } \\dfrac{dy}{dx} = x + y \\text{ and } y(0) = 1, \\text{ what is the tangent line to the solution at } (0, 1)?`,
+      answer: 'y = x + 1',
+      options: shuffle(['y = x + 1', 'y = x', 'y = 1', 'y = 2x + 1']),
+      explain: `Slope at $(0,1)$ is $0+1=1$. Line: $y = 1 + 1 \\cdot (x - 0)$.`,
+    };
+  }
+
+  // halfLifeFormula
   return {
-    difficulty: 7,
+    difficulty: 6,
     kind: 'mc',
-    prompt: `Evaluate the solution:`,
-    expr: `\\text{If } \\dfrac{dy}{dx} = -2xy \\text{ and } y(0)=3, \\text{ find } y(1).`,
-    answer: '3e^{-1}',
-    options: shuffle(['3e^{-1}', '3e', '3 - e', '\\dfrac{3}{e^2}']),
-    explain: `Separable: $\\dfrac{dy}{y} = -2x\\,dx \\Rightarrow \\ln|y| = -x^2 + C \\Rightarrow y = 3e^{-x^2}$. $y(1) = 3e^{-1}$.`,
+    prompt: `Find the decay constant:`,
+    expr: `\\text{A substance has half-life } 8\\,\\text{yr. If } y(t) = y_0 e^{kt}, \\text{ what is } k?`,
+    answer: '-\\dfrac{\\ln 2}{8}',
+    options: shuffle([
+      '-\\dfrac{\\ln 2}{8}',
+      '\\dfrac{\\ln 2}{8}',
+      '-\\dfrac{1}{8\\ln 2}',
+      '-\\ln(1/2)',
+    ]),
+    explain: `$\\tfrac{1}{2} = e^{8k} \\Rightarrow k = \\ln(1/2)/8 = -\\ln 2/8$.`,
   };
 }
 
@@ -1645,6 +1994,7 @@ function makeAreaProblem() {
   const kind = pick([
     'between', 'disk', 'washer', 'crossSection', 'average', 'accumulation',
     'betweenIntersect', 'semicircle', 'rotateAroundLine', 'accumChain', 'volumeY',
+    'triangleSection', 'pyramidVolume', 'arcLengthSetup',
   ]);
 
   if (kind === 'between') {
@@ -1801,15 +2151,61 @@ function makeAreaProblem() {
     };
   }
 
-  // volumeY: integrate with respect to y
+  if (kind === 'volumeY') {
+    return {
+      difficulty: 7,
+      kind: 'volume',
+      flavor: 'disk',
+      prompt: `Rotate the region bounded by $x = y^2$, $x=0$, $y=2$ about the $y$-axis. Volume?`,
+      answer: '\\dfrac{32\\pi}{5}',
+      options: shuffle(['\\dfrac{32\\pi}{5}', '8\\pi', '\\dfrac{16\\pi}{5}', '\\dfrac{8\\pi}{3}']),
+      explain: `$V = \\pi\\int_0^2 (y^2)^2\\,dy = \\pi\\int_0^2 y^4\\,dy = \\dfrac{32\\pi}{5}$.`,
+    };
+  }
+
+  if (kind === 'triangleSection') {
+    return {
+      difficulty: 8,
+      kind: 'volume',
+      flavor: 'square',
+      prompt: `Base: triangle with vertices $(0,0), (1,0), (0,1)$. Cross sections perpendicular to the $x$-axis are equilateral triangles. Volume?`,
+      answer: '\\dfrac{\\sqrt{3}}{12}',
+      options: shuffle([
+        '\\dfrac{\\sqrt{3}}{12}',
+        '\\dfrac{\\sqrt{3}}{6}',
+        '\\dfrac{1}{6}',
+        '\\dfrac{\\sqrt{3}}{4}',
+      ]),
+      explain: `At $x$, base of triangle = $1 - x$. Area = $\\tfrac{\\sqrt{3}}{4}(1-x)^2$. $V = \\tfrac{\\sqrt{3}}{4}\\int_0^1 (1-x)^2\\,dx = \\tfrac{\\sqrt{3}}{4}\\cdot \\tfrac{1}{3} = \\tfrac{\\sqrt{3}}{12}$.`,
+    };
+  }
+
+  if (kind === 'pyramidVolume') {
+    return {
+      difficulty: 7,
+      kind: 'volume',
+      flavor: 'square',
+      prompt: `A pyramid has a square base $6\\,\\text{m} \\times 6\\,\\text{m}$ and height $4\\,\\text{m}$. Find its volume by cross sections.`,
+      answer: '48\\,\\text{m}^3',
+      options: shuffle(['48\\,\\text{m}^3', '144\\,\\text{m}^3', '24\\,\\text{m}^3', '96\\,\\text{m}^3']),
+      explain: `At height $y$ from apex, cross-section side $= \\tfrac{6y}{4} = \\tfrac{3y}{2}$. $V = \\int_0^4 \\tfrac{9y^2}{4}\\,dy = \\tfrac{9}{4} \\cdot \\tfrac{64}{3} = 48$. (Matches $\\tfrac{1}{3}B h$.)`,
+    };
+  }
+
+  // arcLengthSetup (setup only - AB doesn't require evaluation often)
   return {
-    difficulty: 7,
-    kind: 'volume',
-    flavor: 'disk',
-    prompt: `Rotate the region bounded by $x = y^2$, $x=0$, $y=2$ about the $y$-axis. Volume?`,
-    answer: '\\dfrac{32\\pi}{5}',
-    options: shuffle(['\\dfrac{32\\pi}{5}', '8\\pi', '\\dfrac{16\\pi}{5}', '\\dfrac{8\\pi}{3}']),
-    explain: `$V = \\pi\\int_0^2 (y^2)^2\\,dy = \\pi\\int_0^2 y^4\\,dy = \\dfrac{32\\pi}{5}$.`,
+    difficulty: 5,
+    kind: 'mc',
+    prompt: `Set up (not evaluate):`,
+    expr: `\\text{Length of the curve } y = x^{3/2} \\text{ on } [0, 4].`,
+    answer: '\\displaystyle\\int_0^4 \\sqrt{1 + \\tfrac{9x}{4}}\\,dx',
+    options: shuffle([
+      '\\displaystyle\\int_0^4 \\sqrt{1 + \\tfrac{9x}{4}}\\,dx',
+      '\\displaystyle\\int_0^4 \\sqrt{1 + \\tfrac{9x^2}{4}}\\,dx',
+      '\\displaystyle\\int_0^4 x^{3/2}\\,dx',
+      '\\displaystyle\\int_0^4 (1 + \\tfrac{3}{2}x^{1/2})\\,dx',
+    ]),
+    explain: `Arc length $= \\int \\sqrt{1 + (dy/dx)^2}\\,dx$. $dy/dx = \\tfrac{3}{2}x^{1/2}$, so $(dy/dx)^2 = \\tfrac{9x}{4}$.`,
   };
 }
 
@@ -1820,6 +2216,7 @@ function makeFTCProblem() {
   const kind = pick([
     'defint', 'derivint', 'netchange', 'avgValue', 'ftcMix',
     'derivintChain', 'displacement', 'composite', 'mvtIntegral', 'avgVsValue', 'reversedBounds',
+    'bothBounds', 'usubDefBoss', 'positionFromVel', 'oddSymmetric',
   ]);
 
   if (kind === 'defint') {
@@ -1946,14 +2343,63 @@ function makeFTCProblem() {
     };
   }
 
-  // reversedBounds
+  if (kind === 'reversedBounds') {
+    return {
+      difficulty: 6,
+      expr: `\\text{If } \\displaystyle\\int_2^5 f(x)\\,dx = 8, \\text{ what is } \\displaystyle\\int_5^2 3f(x)\\,dx?`,
+      answer: '-24',
+      options: shuffle(['-24', '24', '-8', '8']),
+      explain: `Swap bounds → negate: $-8$. Multiply by 3: $-24$.`,
+      dmg: 28,
+    };
+  }
+
+  if (kind === 'bothBounds') {
+    return {
+      difficulty: 9,
+      expr: `\\dfrac{d}{dx}\\!\\left[\\displaystyle\\int_{x}^{x^2} \\sin t\\,dt\\right]`,
+      answer: '2x\\sin(x^2) - \\sin x',
+      options: shuffle([
+        '2x\\sin(x^2) - \\sin x',
+        '\\sin(x^2) - \\sin x',
+        '\\sin x - 2x\\sin(x^2)',
+        '\\sin(x^2) \\cdot 2x',
+      ]),
+      explain: `Split: $\\int_x^{x^2} = \\int_0^{x^2} - \\int_0^x$. Derivative: $\\sin(x^2)\\cdot 2x - \\sin x$.`,
+      dmg: 40,
+    };
+  }
+
+  if (kind === 'usubDefBoss') {
+    return {
+      difficulty: 7,
+      expr: `\\displaystyle\\int_0^{\\pi/2} \\sin x \\cos x\\,dx`,
+      answer: '\\tfrac{1}{2}',
+      options: shuffle(['\\tfrac{1}{2}', '1', '0', '\\tfrac{\\pi}{4}']),
+      explain: `Let $u = \\sin x$, $du = \\cos x\\,dx$. Bounds $0 \\to 0$, $\\pi/2 \\to 1$. $\\int_0^1 u\\,du = \\tfrac{1}{2}$.`,
+      dmg: 32,
+    };
+  }
+
+  if (kind === 'positionFromVel') {
+    return {
+      difficulty: 7,
+      expr: `\\text{A particle has } v(t) = 3t^2 - 6t. \\text{ If } s(0) = 4, \\text{ find } s(3).`,
+      answer: '4',
+      options: shuffle(['4', '13', '-9', '0']),
+      explain: `$s(3) - s(0) = \\int_0^3 (3t^2-6t)\\,dt = [t^3 - 3t^2]_0^3 = 27 - 27 = 0$. So $s(3) = 4 + 0 = 4$.`,
+      dmg: 30,
+    };
+  }
+
+  // oddSymmetric: integral of odd function over symmetric interval
   return {
     difficulty: 6,
-    expr: `\\text{If } \\displaystyle\\int_2^5 f(x)\\,dx = 8, \\text{ what is } \\displaystyle\\int_5^2 3f(x)\\,dx?`,
-    answer: '-24',
-    options: shuffle(['-24', '24', '-8', '8']),
-    explain: `Swap bounds → negate: $-8$. Multiply by 3: $-24$.`,
-    dmg: 28,
+    expr: `\\displaystyle\\int_{-3}^{3} (x^3 + 2x)\\,dx`,
+    answer: '0',
+    options: shuffle(['0', '54', '-54', '18']),
+    explain: `Both $x^3$ and $2x$ are odd; integral over symmetric interval $[-a, a]$ is $0$.`,
+    dmg: 26,
   };
 }
 

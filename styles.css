@@ -371,27 +371,34 @@ button { font-family: inherit; cursor: pointer; }
 }
 .problem-expr {
   font-family: 'VT323', monospace;
-  font-size: clamp(28px, 5vw, 48px);
+  font-size: clamp(24px, 4vw, 44px);
   color: var(--yellow); text-shadow: var(--shadow-yellow);
   background: rgba(255,233,61,0.06);
   border: 2px dashed var(--yellow);
-  padding: 16px 24px; min-width: 280px;
+  padding: 18px 28px; min-width: 280px;
+  max-width: 92%;
   letter-spacing: 0.04em;
+  overflow-x: auto;
+  text-align: center;
 }
 .answer-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
-  width: 100%; max-width: 640px;
+  width: 100%; max-width: 820px;
 }
 .answer-btn {
   background: #0a0024; color: var(--paper);
   border: 2px solid var(--cyan);
-  padding: 14px 12px;
+  padding: 16px 14px;
   font-family: 'VT323', monospace;
   font-size: 22px;
   text-shadow: 0 0 6px var(--cyan);
   transition: all 0.15s;
+  min-height: 64px;
+  overflow-x: auto;
+  word-break: break-word;
+  line-height: 1.4;
 }
 .answer-btn:hover {
   background: var(--cyan); color: #002e30;
@@ -430,7 +437,7 @@ button { font-family: inherit; cursor: pointer; }
 /* ================ LIMIT LANDER (canvas-style) ================ */
 .lander-scene {
   position: relative; width: 100%; height: 100%;
-  display: grid; grid-template-columns: 1fr 320px; gap: 14px;
+  display: grid; grid-template-columns: 1fr 380px; gap: 14px;
 }
 .lander-stage {
   position: relative;
@@ -484,6 +491,7 @@ button { font-family: inherit; cursor: pointer; }
   background: rgba(0,0,0,0.6); border: 2px solid var(--cyan);
   padding: 16px; display: flex; flex-direction: column; gap: 12px;
   overflow-y: auto;
+  min-width: 360px;
 }
 .lander-panel h3 {
   font-size: 11px; color: var(--cyan); text-shadow: var(--shadow-cyan);
@@ -518,14 +526,15 @@ button { font-family: inherit; cursor: pointer; }
   perspective: 600px;
 }
 .invader {
-  width: 110px; min-height: 80px;
+  width: clamp(180px, 30vw, 360px); min-height: 100px;
   background: rgba(0,0,0,0.6); border: 2px solid var(--green);
   box-shadow: 0 0 14px var(--green);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  font-family: 'VT323', monospace; font-size: 22px;
+  font-family: 'VT323', monospace; font-size: 26px;
   color: var(--green); text-shadow: 0 0 8px var(--green);
-  padding: 10px; transition: transform 0.6s ease, opacity 0.6s ease;
+  padding: 16px 20px; transition: transform 0.6s ease, opacity 0.6s ease;
   position: relative;
+  overflow-x: auto;
 }
 .invader::before {
   content: '👾'; font-family: sans-serif; font-size: 24px; margin-bottom: 4px;
@@ -545,8 +554,8 @@ button { font-family: inherit; cursor: pointer; }
   font-size: 26px;
 }
 .invader-cannons {
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 8px; padding: 12px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px; padding: 14px;
   background: rgba(0,0,0,0.7); border-top: 2px solid var(--green);
   z-index: 2;
 }
@@ -554,8 +563,12 @@ button { font-family: inherit; cursor: pointer; }
   background: #001a14; color: var(--green);
   border: 2px solid var(--green);
   font-family: 'VT323', monospace; font-size: 20px;
-  padding: 10px 6px;
+  padding: 14px 10px;
   text-shadow: 0 0 6px var(--green);
+  min-height: 64px;
+  overflow-x: auto;
+  word-break: break-word;
+  line-height: 1.4;
 }
 .cannon-btn:hover { background: var(--green); color: #001a14; text-shadow: none; }
 
@@ -602,11 +615,11 @@ button { font-family: inherit; cursor: pointer; }
 @keyframes chomp { 50% { transform: translateY(-50%) scaleX(0.1); } }
 .pellet {
   position: absolute;
-  width: 56px; height: 56px;
+  width: clamp(160px, 22vw, 220px); min-height: 100px;
   border: 2px solid currentColor;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.65);
   font-family: 'VT323', monospace;
-  font-size: 18px;
+  font-size: 20px;
   display: flex; align-items: center; justify-content: center;
   text-align: center;
   cursor: pointer;
@@ -614,7 +627,10 @@ button { font-family: inherit; cursor: pointer; }
   z-index: 3;
   box-shadow: 0 0 10px currentColor;
   transition: transform 0.12s;
-  padding: 4px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  line-height: 1.3;
+  word-break: break-word;
 }
 .pellet:hover { transform: scale(1.07); }
 .pellet.correct { background: var(--green); color: #001a0c; border-color: var(--green); }
@@ -622,7 +638,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ================ RELATED RATES ARENA ================ */
 .rates-scene {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+  display: grid; grid-template-columns: 1fr 1.2fr; gap: 18px;
   width: 100%; height: 100%; padding: 4px;
 }
 .rates-anim {
@@ -857,7 +873,11 @@ button { font-family: inherit; cursor: pointer; }
 .problem-expr.red .katex { color: var(--red); }
 .answer-btn .katex,
 .cannon-btn .katex,
-.pellet .katex { font-size: 1em !important; color: inherit; }
+.pellet .katex { font-size: 0.95em !important; color: inherit; }
+/* Allow display-style KaTeX inside narrow buttons to wrap onto two lines */
+.answer-btn .katex-display,
+.cannon-btn .katex-display,
+.pellet .katex-display { margin: 0; }
 .scenario .katex { color: var(--paper); }
 .scenario .katex .mathnormal { color: var(--cyan); }
 
@@ -881,12 +901,14 @@ button { font-family: inherit; cursor: pointer; }
 .chain-layer {
   position: relative;
   border: 2px solid var(--red);
-  padding: 14px 18px;
+  padding: 16px 22px;
   background: rgba(255,77,106,0.06);
   box-shadow: 0 0 10px var(--red);
   color: var(--red); text-shadow: 0 0 6px var(--red);
-  font-family: 'VT323', monospace; font-size: 24px;
+  font-family: 'VT323', monospace; font-size: 26px;
   animation: pulseRed 2s ease-in-out infinite;
+  min-height: 60px;
+  display: flex; align-items: center; justify-content: center;
 }
 @keyframes pulseRed {
   0%,100% { box-shadow: 0 0 8px var(--red); }
@@ -905,7 +927,7 @@ button { font-family: inherit; cursor: pointer; }
 /* ================ SLOPE FIELD SHOWDOWN (Unit 7) ================ */
 .slope-scene {
   width: 100%; height: 100%;
-  display: grid; grid-template-columns: 1fr 320px; gap: 14px; padding: 4px;
+  display: grid; grid-template-columns: 1fr 400px; gap: 14px; padding: 4px;
 }
 .slope-field-wrap {
   background: #000;
@@ -938,7 +960,7 @@ button { font-family: inherit; cursor: pointer; }
 /* ================ AREA ARENA (Unit 8) ================ */
 .area-scene {
   width: 100%; height: 100%;
-  display: grid; grid-template-columns: 1fr 320px; gap: 14px; padding: 4px;
+  display: grid; grid-template-columns: 1fr 400px; gap: 14px; padding: 4px;
 }
 .area-graph-wrap {
   background: #000;
