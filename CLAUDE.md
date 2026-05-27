@@ -44,14 +44,19 @@ All math is **LaTeX strings stored without delimiters**. The renderers wrap them
 ```js
 // Problem object shape:
 {
-  expr:    '\\lim_{x \\to 2}(x^2 + 1)',  // raw LaTeX, no $
-  answer:  '5',                            // raw LaTeX, no $
-  options: ['5', '3', '7', '\\text{DNE}'], // raw LaTeX strings
-  explain: 'Plug in: $5$.',                // mixed text + inline $math$
+  difficulty: 6,                            // 1–10, optional; defaults to 3
+  expr:    '\\lim_{x \\to 2}(x^2 + 1)',     // raw LaTeX, no $
+  answer:  '5',                             // raw LaTeX, no $
+  options: ['5', '3', '7', '\\text{DNE}'],  // raw LaTeX strings
+  explain: 'Plug in: $5$.',                 // mixed text + inline $math$
 }
 ```
 
-KaTeX is loaded from CDN with `defer` (see `<head>` in `index.html`). `renderMath()` is a no-op if `window.renderMathInElement` is not yet available — so it's safe to call early.
+**KaTeX is vendored locally** under `vendor/katex/` (CSS, JS, auto-render, 60 font files). The HTML loads it with `defer`. `renderMath()` retries every 100 ms for up to 3 s if auto-render hasn't initialized yet, so it's safe to call before scripts finish loading.
+
+### Difficulty ramp
+
+Every problem may carry `difficulty: 1–10`. The lobby is configured so each 10-question run sorts problems ascending by difficulty — like an AP section. Missing field defaults to 3 (easy-ish). When adding new problem variants, tag them: 2–4 = warm-up, 5–6 = mid-game, 7–8 = challenge, 9–10 = AP free-response territory. See `byDifficulty` / `makeRun` / `buildOptimSet` in `script.js`.
 
 ### Answer comparison MUST use `dataset.value`, not `textContent`
 
