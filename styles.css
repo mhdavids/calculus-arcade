@@ -381,6 +381,41 @@ button { font-family: inherit; cursor: pointer; }
   overflow-x: auto;
   text-align: center;
 }
+
+/* Wrap-friendly box for problem statements that mix prose with inline math.
+   Used for long word problems where LaTeX \text{} wouldn't wrap. */
+.problem-scenario {
+  font-family: 'Press Start 2P', system-ui, monospace;
+  font-size: clamp(11px, 1.4vw, 14px);
+  line-height: 1.7;
+  color: var(--paper);
+  background: rgba(255,233,61,0.05);
+  border: 2px dashed var(--yellow);
+  padding: 18px 22px;
+  max-width: 96%;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.problem-scenario .katex { color: var(--yellow); font-size: 1.15em !important; }
+.slope-field-wrap .problem-scenario { border-color: var(--blue); background: rgba(61,164,255,0.05); }
+.slope-field-wrap .problem-scenario .katex { color: var(--blue); }
+.area-panel .problem-scenario { border-color: var(--mint); background: rgba(61,255,214,0.05); }
+.area-panel .problem-scenario .katex { color: var(--mint); }
+.opt-prompt .problem-scenario { border-color: var(--purple); background: rgba(181,61,255,0.05); }
+.opt-prompt .problem-scenario .katex { color: var(--purple); }
+.ftc-control .problem-scenario { border-color: var(--red); background: rgba(255,77,106,0.05); }
+.ftc-control .problem-scenario .katex { color: var(--red); }
+.dash-prompt .problem-scenario { border-color: var(--pink); background: rgba(255,61,203,0.05); }
+.dash-prompt .problem-scenario .katex { color: var(--pink); }
+.chain-prompt .problem-scenario { border-color: var(--red); background: rgba(255,77,106,0.05); }
+.chain-prompt .problem-scenario .katex { color: var(--red); }
+.invader-prompt .problem-scenario { border-color: var(--green); background: rgba(61,255,133,0.05); margin: 10px auto 0; max-width: 80%; }
+.invader-prompt .problem-scenario .katex { color: var(--green); }
+.lander-panel .problem-scenario { border-color: var(--cyan); background: rgba(0,240,255,0.05); }
+.lander-panel .problem-scenario .katex { color: var(--cyan); }
+.rates-panel .problem-scenario { border-color: var(--orange); background: rgba(255,140,26,0.05); }
+.rates-panel .problem-scenario .katex { color: var(--orange); }
 .answer-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

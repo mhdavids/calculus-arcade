@@ -256,6 +256,56 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
 const shuffle = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(p => p[1]);
 function randomPraise() { return pick(['NICE!', 'GREAT WORK!', 'YOU GOT IT!', '+1 MASTERY!', 'SHARP!', 'PERFECT!']); }
 
+// Convert a LaTeX expression that mixes \text{english} with $math$ into HTML where the prose
+// flows as wrap-able paragraph text and the math stays in $...$ delimiters for KaTeX. Long
+// problem statements wrapped in \text{} would otherwise render as a single inline-block that
+// refuses to wrap inside narrow side panels.
+function latexToScenario(latex) {
+  const escapeHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  let out = '';
+  let i = 0;
+  while (i < latex.length) {
+    const idx = latex.indexOf('\\text{', i);
+    if (idx === -1) {
+      const rest = latex.slice(i).trim();
+      if (rest) out += ' $' + rest + '$';
+      break;
+    }
+    if (idx > i) {
+      const math = latex.slice(i, idx).trim();
+      if (math) out += ' $' + math + '$';
+    }
+    let depth = 1, j = idx + 6;
+    while (j < latex.length && depth > 0) {
+      if (latex[j] === '{') depth++;
+      else if (latex[j] === '}') depth--;
+      if (depth > 0) j++;
+    }
+    let text = latex.slice(idx + 6, j);
+    text = text.replace(/\\,/g, ' ').replace(/\\;/g, ' ').replace(/\\:/g, ' ').replace(/\\!/g, '');
+    out += escapeHtml(text);
+    i = j + 1;
+  }
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+// Decide whether an expression should be rendered as flowing scenario text (wraps naturally)
+// versus a centered math box. Long \text{} blocks or many words → scenario.
+function isTextHeavy(latex) {
+  if (!latex) return false;
+  if (/\\text\{[^}]{15,}/.test(latex)) return true;
+  return latex.length > 80 && latex.indexOf('\\text{') !== -1;
+}
+
+// Returns the HTML to insert for a problem's main expression area. Text-heavy strings get a
+// flowing scenario-style box; pure math gets the big yellow problem-expr box.
+function exprBoxHtml(latex, exprClass = 'problem-expr') {
+  if (isTextHeavy(latex)) {
+    return '<div class="problem-scenario">' + latexToScenario(latex) + '</div>';
+  }
+  return '<div class="' + exprClass + '">$' + latex + '$</div>';
+}
+
 function renderMath(root, attemptsLeft = 30) {
   if (typeof window === 'undefined') return;
   if (window.renderMathInElement) {
@@ -2430,7 +2480,7 @@ function renderLimitLander(stage, p) {
       </div>
       <div class="lander-panel">
         <h3>EVALUATE THE LIMIT</h3>
-        <div class="lander-expr">$${p.expr}$</div>
+        ${isTextHeavy(p.expr) ? exprBoxHtml(p.expr) : `<div class="lander-expr">$${p.expr}$</div>`}
         <div class="answer-grid" id="lander-options"></div>
         <p style="font-size:9px; color:var(--cyan); opacity:0.7; line-height:1.5;">
           Land safely by picking the right limit before fuel runs out.
@@ -2477,7 +2527,7 @@ function renderDerivDash(stage, p) {
     <div class="dash-scene">
       <div class="dash-prompt">
         <div class="problem-prompt">CHOMP THE CORRECT DERIVATIVE</div>
-        <div class="problem-expr">$${p.expr}$</div>
+        ${exprBoxHtml(p.expr)}
       </div>
       <div class="dash-board" id="dash-board"></div>
     </div>
@@ -2526,7 +2576,7 @@ function renderChainReaction(stage, p) {
       <div class="chain-prompt">
         <h3>UNWRAP THE FUNCTION</h3>
         <div class="chain-layers">${layersHTML}</div>
-        <div class="problem-expr" style="margin-top:10px;">$${p.expr}$</div>
+        <div style="margin-top:10px;">${exprBoxHtml(p.expr)}</div>
       </div>
       <div class="chain-options">
         <div class="answer-grid" id="chain-opts"></div>
@@ -2662,7 +2712,7 @@ function renderOptMC(stage, p) {
     <div class="opt-scene">
       <div class="opt-prompt">
         <h3>ANALYTICAL APPLICATION</h3>
-        <p>$${p.expr}$</p>
+        ${exprBoxHtml(p.expr)}
       </div>
       <div class="opt-graph" style="padding:24px; flex-direction:column;">
         <div class="answer-grid" id="opt-mc-opts" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); width:100%; max-width:760px;"></div>
@@ -2683,14 +2733,19 @@ function renderOptMC(stage, p) {
 
 // ---------- INTEGRAL INVADERS ----------
 function renderIntegralInvaders(stage, p) {
+  const textHeavy = isTextHeavy(p.expr);
+  const invaderInner = textHeavy
+    ? `<span style="font-size:32px;">👾</span>`
+    : `$${p.expr}$`;
   stage.innerHTML = `
     <div class="invaders-scene">
       <div class="invaders-stars"></div>
       <div class="invader-row">
-        <div class="invader">$${p.expr}$</div>
+        <div class="invader">${invaderInner}</div>
       </div>
       <div class="invader-prompt">
         <div class="problem-prompt">PICK THE ANTIDERIVATIVE (OR ANSWER) TO BLAST IT</div>
+        ${textHeavy ? exprBoxHtml(p.expr) : ''}
       </div>
       <div class="invader-cannons" id="cannon-row"></div>
     </div>
@@ -2728,7 +2783,7 @@ function renderSlopeField(stage, p) {
       <div class="slope-scene">
         <div class="slope-field-wrap" style="padding:18px; flex-direction:column; gap:14px;">
           <div class="problem-prompt" style="color:var(--blue); text-shadow:0 0 8px var(--blue);">${p.prompt}</div>
-          <div class="problem-expr">$${p.expr}$</div>
+          ${exprBoxHtml(p.expr)}
         </div>
         <div class="slope-panel">
           <h3>YOUR ANSWER</h3>
@@ -2804,7 +2859,7 @@ function renderAreaArena(stage, p) {
       <div class="area-graph-wrap">${canvasHTML}</div>
       <div class="area-panel">
         <h3>${p.prompt}</h3>
-        ${p.expr ? `<p class="scenario">$${p.expr}$</p>` : ''}
+        ${p.expr ? exprBoxHtml(p.expr) : ''}
         <h3 style="margin-top:8px">YOUR ANSWER</h3>
         <div class="answer-grid" id="area-opts"></div>
       </div>
@@ -2904,7 +2959,7 @@ function renderFTC(stage, p) {
       </div>
       <div class="ftc-control">
         <div class="problem-prompt" style="color:var(--red);text-shadow:0 0 8px var(--red);">CAST FTC TO DAMAGE THE BOSS</div>
-        <div class="problem-expr">$${p.expr}$</div>
+        ${exprBoxHtml(p.expr)}
         <div class="answer-grid" id="ftc-opts"></div>
       </div>
     </div>
